@@ -236,7 +236,7 @@
         <section id="distributions" class="section"><div class="section-title"><h1>Distributions</h1><p>Stock issued to resellers. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-distribution">+ Record Distribution</button></div><div class="panel"><div class="table-wrap" id="distributionsTable"><div class="empty">Loading distributions…</div></div></div></section>
         <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
-        <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Business summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Recorded sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div></section>
+        <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Sales, profit and payment summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Total Sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat" id="ownerProfitCard"><div class="k">Owner Gross Profit</div><div class="v" id="reportOwnerProfit">SAR 0.00</div><div class="hint">Reseller price − product purchase cost</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="reportResellerProfit">SAR 0.00</div><div class="hint">Retail price − reseller price</div></div><div class="stat"><div class="k">Total Deposits</div><div class="v" id="reportDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="reportOutstanding">SAR 0.00</div><div class="hint">Sales − recorded deposits</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div><p class="muted" id="reportProfitNote" style="margin-top:12px">Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.</p></section>
       </div>
     </main>
   </section>
@@ -247,7 +247,7 @@
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yTOsahW0g8F5EGg6C_yLAQ_1WjHFgAp";
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
   let currentUser = null, profile = null, business = null, resellerAccount = null;
-  let cache = {products:[],resellers:[],sales:[],wallet:[],distributions:[]};
+  let cache = {products:[],resellers:[],sales:[],wallet:[],distributions:[],saleItems:[]};
   const $ = id => document.getElementById(id);
   const money = n => new Intl.NumberFormat("en-SA",{style:"currency",currency:"SAR"}).format(Number(n||0));
   const safe = v => String(v ?? "");
@@ -295,7 +295,7 @@
       client.from("distributions").select("*").eq("business_id",bid).order("created_at",{ascending:false}).limit(100)
     ]);
     for(const x of [products,resellers,sales,wallet,distributions])if(x.error)throw x.error;
-    cache={products:products.data||[],resellers:owner?(resellers.data||[]):[],sales:sales.data||[],wallet:wallet.data||[],distributions:distributions.data||[]};
+    cache={products:products.data||[],resellers:owner?(resellers.data||[]):[],sales:sales.data||[],wallet:wallet.data||[],distributions:distributions.data||[],saleItems:[]};
     if(!owner){
       const inventory=await client.from("reseller_inventory").select("product_id, quantity").eq("business_id",bid).eq("reseller_id",resellerAccount.id);
       if(inventory.error)throw inventory.error;
@@ -304,6 +304,12 @@
       cache.sales=cache.sales.filter(x=>x.reseller_id===resellerAccount.id);
       cache.wallet=cache.wallet.filter(x=>x.reseller_id===resellerAccount.id);
       cache.distributions=cache.distributions.filter(x=>x.reseller_id===resellerAccount.id);
+    }
+    const saleIds=cache.sales.map(x=>x.id).filter(Boolean);
+    if(saleIds.length){
+      const items=await client.from("sale_items").select("sale_id,product_id,quantity,unit_cost,unit_selling_price").in("sale_id",saleIds);
+      if(items.error){cache.saleItemsError=items.error.message||"Sale item details are not accessible.";}
+      else cache.saleItems=items.data||[];
     }
     render();
   }
@@ -314,7 +320,22 @@
     $("statResellers").textContent=profile.role==="owner"?cache.resellers.length:"1";
     $("statSales").textContent=money(salesTotal);
     $("statWallet").textContent=money(walletBalance);
-    $("reportSales").textContent=money(salesTotal);$("reportProducts").textContent=cache.products.length;$("reportResellers").textContent=profile.role==="owner"?cache.resellers.length:"1";$("reportWallet").textContent=cache.wallet.length;
+    const productById=new Map(cache.products.map(p=>[p.id,p]));
+    const resellerProfit=cache.saleItems.reduce((sum,item)=>sum+(Number(item.unit_selling_price||0)-Number(item.unit_cost||0))*Number(item.quantity||0),0);
+    const ownerGrossProfit=cache.saleItems.reduce((sum,item)=>{
+      const product=productById.get(item.product_id);
+      return sum+(Number(item.unit_cost||0)-Number(product?.purchase_cost||0))*Number(item.quantity||0);
+    },0);
+    const totalDeposits=cache.wallet.filter(x=>x.transaction_type==="deposit"&&x.direction==="credit").reduce((sum,x)=>sum+Number(x.amount||0),0);
+    const outstanding=Math.max(0,salesTotal-totalDeposits);
+    $("reportSales").textContent=money(salesTotal);
+    $("reportOwnerProfit").textContent=cache.saleItemsError?"Unavailable":money(ownerGrossProfit);
+    $("reportResellerProfit").textContent=cache.saleItemsError?"Unavailable":money(resellerProfit);
+    if($("reportProfitNote"))$("reportProfitNote").textContent=cache.saleItemsError?"Profit details need read access to sale_items. Ask the database administrator to check its SELECT policy.":"Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.";
+    $("reportDeposits").textContent=money(totalDeposits);
+    $("reportOutstanding").textContent=money(outstanding);
+    $("ownerProfitCard").classList.toggle("hidden",profile.role!=="owner");
+    $("reportProducts").textContent=cache.products.length;$("reportResellers").textContent=profile.role==="owner"?cache.resellers.length:"1";$("reportWallet").textContent=cache.wallet.length;
     $("workspaceInfo").textContent=`${business.business_name} · ${profile.role==="owner"?"Owner account":"Reseller account"} · Currency: ${business.currency||"SAR"}`;
     const saleRows=cache.sales.slice(0,8).map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`);
     $("recentSales").innerHTML=table(["Date","Payment","Total"],saleRows,"No sales have been recorded yet.");
