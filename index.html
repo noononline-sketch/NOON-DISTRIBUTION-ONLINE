@@ -9,7 +9,7 @@
   <style>
     :root{--blue:#1456d8;--blue2:#0e3fba;--pale:#edf4ff;--ink:#14213d;--muted:#71809a;--line:#e5ebf4;--bg:#f5f8fd;--white:#fff;--green:#138a55;--red:#c43d4d;--shadow:0 14px 40px rgba(25,57,110,.08)}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-    button,input{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+    button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!important}
     .auth-wrap{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr;background:#fff}
     .brand-panel{padding:clamp(28px,6vw,80px);background:linear-gradient(145deg,#0d3da9,#1765e8 65%,#5ca0ff);color:#fff;display:flex;flex-direction:column;justify-content:space-between;min-height:100vh}
     .brand{display:flex;align-items:center;gap:13px;font-weight:800;letter-spacing:.3px}.brand-mark{width:46px;height:46px;border-radius:14px;background:#fff;color:var(--blue);display:grid;place-items:center;font-size:22px;font-weight:900}
@@ -146,6 +146,32 @@
     </form>
   </div>
 
+
+  <div id="distributionModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="distributionModalTitle">
+    <form id="distributionForm" class="modal-card">
+      <h2 id="distributionModalTitle">Record Stock Distribution</h2>
+      <p class="modal-sub">Choose a reseller and product, then enter the quantity to issue.</p>
+      <label for="distributionReseller">Reseller</label>
+      <select class="field" id="distributionReseller" required></select>
+      <label for="distributionProduct">Product</label>
+      <select class="field" id="distributionProduct" required></select>
+      <label for="distributionQuantity">Quantity</label>
+      <input class="field" id="distributionQuantity" type="number" min="1" step="1" placeholder="Enter quantity" required>
+      <label for="distributionDate">Distribution date</label>
+      <input class="field" id="distributionDate" type="date" required>
+      <div class="panel" style="margin-top:16px;padding:14px;background:#f5f8fd;box-shadow:none">
+        <div class="muted">Available stock</div><strong id="distributionAvailable">—</strong>
+        <div class="muted" style="margin-top:10px">Reseller price</div><strong id="distributionUnitPrice">—</strong>
+        <div class="muted" style="margin-top:10px">Total amount</div><strong id="distributionTotal">SAR 0.00</strong>
+      </div>
+      <div id="distributionFormMessage" class="modal-message" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button class="secondary-btn" id="cancelDistribution" type="button">Cancel</button>
+        <button class="primary" id="saveDistributionBtn" type="submit">Save Distribution</button>
+      </div>
+    </form>
+  </div>
+
   <section id="appView" class="app hidden">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><span>NOON DISTRIBUTION</span></div>
@@ -268,7 +294,7 @@
     $("recentSales").innerHTML=table(["Date","Payment","Total"],saleRows,"No sales have been recorded yet.");
     $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],cache.products.map(x=>`<tr>${cell(x.product_name)}${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td><button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button></td></tr>`),"No products added yet.");
     $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
-    $("distributionsTable").innerHTML=table(["Date","Total","Status"],cache.distributions.map(x=>`<tr>${cell(x.distribution_date)}${cell(money(x.total_amount))}${cell(x.status)}</tr>`),"No distributions recorded yet.");
+    $("distributionsTable").innerHTML=table(["Date","Reseller","Product","Quantity","Total","Status"],cache.distributions.map(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id);const p=cache.products.find(v=>v.id===x.product_id);return `<tr>${cell(x.distribution_date)}${cell(r?.reseller_name||"Your account")}${cell(p?.product_name||"—")}${cell(x.quantity??"—")}${cell(money(x.total_amount))}${cell(x.status)}</tr>`}),"No distributions recorded yet.");
     $("salesTable").innerHTML=table(["Date","Payment","Total"],cache.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`),"No sales recorded yet.");
     $("walletTable").innerHTML=table(["Date","Type","Direction","Amount","Description"],cache.wallet.map(x=>`<tr>${cell(new Date(x.created_at).toLocaleString())}${cell(x.transaction_type)}${cell(x.direction)}${cell(money(x.amount))}${cell(x.description||"—")}</tr>`),"No wallet transactions recorded yet.");
   }
@@ -297,7 +323,10 @@
       }else if(action==="toggle-reseller"){
         const old=cache.resellers.find(x=>x.id===id);if(!old)return;
         const {error}=await client.from("reseller_accounts").update({active:!old.active}).eq("id",id).eq("business_id",bid);if(error)throw error;
-      }else if(action==="add-distribution"||action==="add-deposit"||action==="add-sale"){
+      }else if(action==="add-distribution"){
+        openDistributionModal();
+        return;
+      }else if(action==="add-deposit"||action==="add-sale"){
         let resellerId=resellerAccount?.id;
         const options=cache.resellers;
         if(profile.role==="owner"){
@@ -309,9 +338,6 @@
           const amount=getAmount("Sale total amount (SAR):","0");if(amount===null||amount<=0)return;
           const method=ask("Payment method (cash / card / transfer):","cash");if(method===null)return;
           const {error}=await client.from("sales").insert({business_id:bid,reseller_id:resellerId,total_amount:amount,payment_method:method||null});if(error)throw error;
-        }else if(action==="add-distribution"){
-          const amount=getAmount("Distribution total amount (SAR):","0");if(amount===null||amount<=0)return;
-          const {error}=await client.from("distributions").insert({business_id:bid,reseller_id:resellerId,total_amount:amount,status:"completed"});if(error)throw error;
         }else{
           const amount=getAmount("Deposit amount (SAR):","0");if(amount===null||amount<=0)return;
           const desc=ask("Description (optional):","Cash deposit");if(desc===null)return;
@@ -321,6 +347,69 @@
       await loadWorkspace();alert("Saved successfully.");
     }catch(err){alert("Could not save: "+(err.message||String(err)));}
   }
+
+  function openDistributionModal(){
+    const resellerSelect=$("distributionReseller"),productSelect=$("distributionProduct");
+    resellerSelect.innerHTML=cache.resellers.filter(r=>r.active).map(r=>`<option value="${r.id}">${safe(r.reseller_name).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</option>`).join("");
+    productSelect.innerHTML=cache.products.filter(p=>p.active!==false).map(p=>`<option value="${p.id}">${safe(p.product_name)} — Stock: ${Number(p.stock_quantity||0)}</option>`).join("");
+    $("distributionForm").reset();
+    $("distributionDate").value=new Date().toISOString().slice(0,10);
+    $("distributionFormMessage").textContent="";
+    $("distributionFormMessage").className="modal-message";
+    $("saveDistributionBtn").disabled=false;
+    $("saveDistributionBtn").textContent="Save Distribution";
+    $("distributionModal").classList.remove("hidden");
+    updateDistributionPreview();
+  }
+  function closeDistributionModal(){
+    $("distributionModal").classList.add("hidden");
+    $("distributionForm").reset();
+  }
+  function updateDistributionPreview(){
+    const product=cache.products.find(p=>p.id===$("distributionProduct").value);
+    const qty=Number($("distributionQuantity").value||0);
+    const price=Number(product?.reseller_price||0);
+    $("distributionAvailable").textContent=product?String(product.stock_quantity):"—";
+    $("distributionUnitPrice").textContent=product?money(price):"—";
+    $("distributionTotal").textContent=money(qty>0?qty*price:0);
+    $("distributionQuantity").max=product?String(product.stock_quantity):"";
+  }
+  $("distributionProduct").addEventListener("change",updateDistributionPreview);
+  $("distributionQuantity").addEventListener("input",updateDistributionPreview);
+  $("distributionReseller").addEventListener("change",()=>{});
+  $("cancelDistribution").addEventListener("click",closeDistributionModal);
+  $("distributionModal").addEventListener("click",e=>{if(e.target===$("distributionModal"))closeDistributionModal();});
+  $("distributionForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const resellerId=$("distributionReseller").value;
+    const productId=$("distributionProduct").value;
+    const quantity=Number($("distributionQuantity").value);
+    const date=$("distributionDate").value;
+    const product=cache.products.find(p=>p.id===productId);
+    const message=$("distributionFormMessage"),btn=$("saveDistributionBtn");
+    if(!resellerId||!product||!date||!Number.isInteger(quantity)||quantity<1){
+      message.className="modal-message error";message.textContent="Choose a reseller and product, enter a valid quantity and date.";return;
+    }
+    if(quantity>Number(product.stock_quantity||0)){
+      message.className="modal-message error";message.textContent="The requested quantity is greater than available stock.";return;
+    }
+    btn.disabled=true;btn.textContent="Saving…";message.className="modal-message";message.textContent="";
+    try{
+      const {error}=await client.rpc("record_distribution",{
+        p_business_id:business.id,p_reseller_id:resellerId,p_product_id:productId,
+        p_quantity:quantity,p_distribution_date:date
+      });
+      if(error)throw error;
+      closeDistributionModal();
+      await loadWorkspace();
+      alert("Distribution saved and stock updated successfully.");
+    }catch(err){
+      message.className="modal-message error";
+      message.textContent=err.message||"Could not save distribution. Check the database setup.";
+      btn.disabled=false;btn.textContent="Save Distribution";
+    }
+  });
+
   let editingProductId=null;
   function openProductModal(action,id){
     const old=cache.products.find(x=>x.id===id)||{};
