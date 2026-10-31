@@ -78,6 +78,21 @@
         <button class="primary full" id="saveNewPasswordBtn" type="submit">Save new password</button>
         <div id="resetPasswordMessage" aria-live="polite"></div>
       </form>
+
+      <form id="resellerRegisterForm" class="auth-card hidden">
+        <h2>Join as a reseller</h2>
+        <p class="sub">Complete your account using the invitation sent by the business owner.</p>
+        <label for="inviteFullName">Full name</label>
+        <input class="field" id="inviteFullName" type="text" autocomplete="name" required>
+        <label for="inviteEmail">Invitation email</label>
+        <input class="field" id="inviteEmail" type="email" autocomplete="email" readonly required>
+        <label for="invitePassword">Create password</label>
+        <input class="field" id="invitePassword" type="password" autocomplete="new-password" minlength="8" required>
+        <label for="invitePasswordConfirm">Confirm password</label>
+        <input class="field" id="invitePasswordConfirm" type="password" autocomplete="new-password" minlength="8" required>
+        <button class="primary full" id="completeInviteBtn" type="submit">Create reseller account</button>
+        <div id="inviteRegisterMessage" aria-live="polite"></div>
+      </form>
     </div>
   </section>
 
@@ -141,7 +156,7 @@
   function table(headers, rows, empty){ if(!rows.length)return `<div class="empty">${empty}</div>`; return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`; }
   function showMessage(msg, type="error"){ $("authMessage").className=type; $("authMessage").textContent=msg; }
   function showAuthForm(formId){
-    ["loginForm","resetRequestForm","resetPasswordForm"].forEach(id=>$(id).classList.toggle("hidden",id!==formId));
+    ["loginForm","resetRequestForm","resetPasswordForm","resellerRegisterForm"].forEach(id=>$(id).classList.toggle("hidden",id!==formId));
   }
   function showResetPassword(){
     showAuth();
@@ -232,10 +247,24 @@
         const old=cache.resellers.find(x=>x.id===id)||{};
         const name=ask("Reseller name:",old.reseller_name||"");if(name===null||!name)return;
         const phone=ask("Phone (optional):",old.phone||"");if(phone===null)return;
-        const data={business_id:bid,reseller_name:name,phone:phone||null,active:old.active??true};
-        const q=action==="edit-reseller"?client.from("reseller_accounts").update(data).eq("id",id).eq("business_id",bid):client.from("reseller_accounts").insert(data);
-        const {error}=await q;if(error)throw error;
-        if(action==="add-reseller")alert("Reseller record saved. This does not create a sign-in account; account linking requires a secure server-side invitation function.");
+        if(action==="add-reseller"){
+          const email=ask("Reseller email address:","");if(email===null||!email)return;
+          const {data:{session}}=await client.auth.getSession();
+          if(!session)throw new Error("Please sign in again.");
+          const response=await fetch(`${SUPABASE_URL}/functions/v1/invite-reseller`,{
+            method:"POST",
+            headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY,"Authorization":`Bearer ${session.access_token}`},
+            body:JSON.stringify({email,reseller_name:name,phone,business_id:bid})
+          });
+          const result=await response.json();
+          if(!response.ok)throw new Error(result.error||"Invitation could not be created.");
+          const link=result.invite_url;
+          try{await navigator.clipboard.writeText(link);alert("Invitation created and copied! Send this link to the reseller:\n\n"+link);}
+          catch{prompt("Copy this invitation link and send it to the reseller:",link);}
+        }else{
+          const data={business_id:bid,reseller_name:name,phone:phone||null,active:old.active??true};
+          const {error}=await client.from("reseller_accounts").update(data).eq("id",id).eq("business_id",bid);if(error)throw error;
+        }
       }else if(action==="toggle-reseller"){
         const old=cache.resellers.find(x=>x.id===id);if(!old)return;
         const {error}=await client.from("reseller_accounts").update({active:!old.active}).eq("id",id).eq("business_id",bid);if(error)throw error;
@@ -264,6 +293,52 @@
     }catch(err){alert("Could not save: "+(err.message||String(err)));}
   }
   document.addEventListener("click",e=>{const b=e.target.closest("[data-action]");if(b)performAction(b.dataset.action,b.dataset.id);});
+
+
+  const invitationParams = new URLSearchParams(window.location.search);
+  const invitationToken = invitationParams.get("invite");
+  const invitationEmail = invitationParams.get("email");
+  if(invitationToken || invitationEmail){
+    if(!invitationToken || !invitationEmail){
+      showAuthForm("resellerRegisterForm");
+      $("inviteRegisterMessage").className="error";
+      $("inviteRegisterMessage").textContent="This invitation link is incomplete.";
+    }else{
+      $("inviteEmail").value=invitationEmail;
+      showAuthForm("resellerRegisterForm");
+    }
+  }
+
+  $("resellerRegisterForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fullName=$("inviteFullName").value.trim();
+    const email=$("inviteEmail").value.trim();
+    const password=$("invitePassword").value;
+    const confirmPassword=$("invitePasswordConfirm").value;
+    const message=$("inviteRegisterMessage");
+    if(password.length<8){message.className="error";message.textContent="Password must be at least 8 characters.";return;}
+    if(password!==confirmPassword){message.className="error";message.textContent="Passwords do not match.";return;}
+    const btn=$("completeInviteBtn");btn.disabled=true;btn.textContent="Creating account…";
+    message.className="";message.textContent="";
+    try{
+      const response=await fetch(`${SUPABASE_URL}/functions/v1/accept-reseller-invitation`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
+        body:JSON.stringify({token:invitationToken,email,password,full_name:fullName})
+      });
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||"Registration failed.");
+      message.className="success";
+      message.textContent=result.message||"Account created. Check your email to confirm your account.";
+      $("invitePassword").value="";$("invitePasswordConfirm").value="";
+      history.replaceState(null,"",window.location.pathname);
+    }catch(err){
+      message.className="error";message.textContent=err.message||"Registration failed.";
+    }finally{
+      btn.disabled=false;btn.textContent="Create reseller account";
+    }
+  });
+
 
   $("loginForm").addEventListener("submit",async e=>{
     e.preventDefault();$("loginBtn").disabled=true;$("loginBtn").textContent="Signing in…";showMessage("");
@@ -333,7 +408,9 @@
     }
   });
   const recoveryLink=window.location.hash.includes("type=recovery");
-  if(recoveryLink){
+  if(invitationToken){
+    showAuth();showAuthForm("resellerRegisterForm");
+  }else if(recoveryLink){
     showResetPassword();
   }else{
     client.auth.getSession().then(async({data})=>{
