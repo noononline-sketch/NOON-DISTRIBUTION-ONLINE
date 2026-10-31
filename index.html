@@ -274,7 +274,10 @@
     for(const x of [products,resellers,sales,wallet,distributions])if(x.error)throw x.error;
     cache={products:products.data||[],resellers:owner?(resellers.data||[]):[],sales:sales.data||[],wallet:wallet.data||[],distributions:distributions.data||[]};
     if(!owner){
-      cache.products=cache.products;
+      const inventory=await client.from("reseller_inventory").select("product_id, quantity").eq("business_id",bid).eq("reseller_id",resellerAccount.id);
+      if(inventory.error)throw inventory.error;
+      const quantities=new Map((inventory.data||[]).map(row=>[row.product_id,Number(row.quantity||0)]));
+      cache.products=cache.products.map(product=>({...product,stock_quantity:quantities.get(product.id)||0}));
       cache.sales=cache.sales.filter(x=>x.reseller_id===resellerAccount.id);
       cache.wallet=cache.wallet.filter(x=>x.reseller_id===resellerAccount.id);
       cache.distributions=cache.distributions.filter(x=>x.reseller_id===resellerAccount.id);
@@ -292,7 +295,9 @@
     $("workspaceInfo").textContent=`${business.business_name} · ${profile.role==="owner"?"Owner account":"Reseller account"} · Currency: ${business.currency||"SAR"}`;
     const saleRows=cache.sales.slice(0,8).map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`);
     $("recentSales").innerHTML=table(["Date","Payment","Total"],saleRows,"No sales have been recorded yet.");
-    $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],cache.products.map(x=>`<tr>${cell(x.product_name)}${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td><button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button></td></tr>`),"No products added yet.");
+    document.querySelectorAll('[data-action="add-product"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
+    const productRows=cache.products.map(x=>`<tr>${cell(x.product_name)}${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
+    $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],productRows,"No products added yet.");
     $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
     $("distributionsTable").innerHTML=table(["Date","Reseller","Product","Quantity","Total","Status"],cache.distributions.map(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id);const p=cache.products.find(v=>v.id===x.product_id);return `<tr>${cell(x.distribution_date)}${cell(r?.reseller_name||"Your account")}${cell(p?.product_name||"—")}${cell(x.quantity??"—")}${cell(money(x.total_amount))}${cell(x.status)}</tr>`}),"No distributions recorded yet.");
     $("salesTable").innerHTML=table(["Date","Payment","Total"],cache.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`),"No sales recorded yet.");
