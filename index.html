@@ -236,7 +236,7 @@
         <section id="distributions" class="section"><div class="section-title"><h1>Distributions</h1><p>Stock issued to resellers. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-distribution">+ Record Distribution</button></div><div class="panel"><div class="table-wrap" id="distributionsTable"><div class="empty">Loading distributions…</div></div></div></section>
         <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
-        <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Sales, profit and payment summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Total Sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat" id="ownerProfitCard"><div class="k">Owner Gross Profit</div><div class="v" id="reportOwnerProfit">SAR 0.00</div><div class="hint">Reseller price − product purchase cost</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="reportResellerProfit">SAR 0.00</div><div class="hint">Retail price − reseller price</div></div><div class="stat"><div class="k">Total Deposits</div><div class="v" id="reportDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="reportOutstanding">SAR 0.00</div><div class="hint">Sales − recorded deposits</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div><p class="muted" id="reportProfitNote" style="margin-top:12px">Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.</p></section>
+        <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Sales, profit and payment summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Total Sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat" id="ownerProfitCard"><div class="k">Owner Gross Profit</div><div class="v" id="reportOwnerProfit">SAR 0.00</div><div class="hint">Reseller price − product purchase cost</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="reportResellerProfit">SAR 0.00</div><div class="hint">Retail price − reseller price</div></div><div class="stat"><div class="k">Total Deposits</div><div class="v" id="reportDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="reportOutstanding">SAR 0.00</div><div class="hint">Sales − recorded deposits</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div><p class="muted" id="reportProfitNote" style="margin-top:12px">Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.</p><div class="section-title" style="margin-top:26px"><h2>Reseller Statement</h2><p>Sales, deposits, outstanding balance and profit for each reseller.</p></div><div class="section-actions" style="align-items:center"><label for="statementReseller" class="muted">Select reseller</label><select class="field" id="statementReseller" style="max-width:280px"></select></div><div class="grid" style="margin-top:12px"><div class="stat"><div class="k">Reseller Sales</div><div class="v" id="statementSales">SAR 0.00</div></div><div class="stat"><div class="k">Deposits Received</div><div class="v" id="statementDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="statementOutstanding">SAR 0.00</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="statementProfit">SAR 0.00</div></div></div><div class="panel" style="margin-top:14px"><div class="panel-head"><h3 id="statementTitle">Reseller transactions</h3></div><div class="table-wrap" id="statementTable"><div class="empty">Select a reseller to view the statement.</div></div></div></section>
       </div>
     </main>
   </section>
@@ -313,6 +313,41 @@
     }
     render();
   }
+  function renderResellerStatement(){
+    const select=$("statementReseller");
+    if(!select)return;
+    const available=profile.role==="owner"?cache.resellers:[resellerAccount].filter(Boolean);
+    const previous=select.value;
+    select.innerHTML=available.map(r=>`<option value="${r.id}">${safe(r.reseller_name||"Reseller")}</option>`).join("");
+    if(previous&&available.some(r=>r.id===previous))select.value=previous;
+    const chosen=available.find(r=>r.id===select.value)||available[0];
+    if(!chosen){
+      $("statementTitle").textContent="Reseller transactions";
+      ["statementSales","statementDeposits","statementOutstanding","statementProfit"].forEach(id=>$(id).textContent=money(0));
+      $("statementTable").innerHTML='<div class="empty">No reseller account is available.</div>';
+      return;
+    }
+    const sales=cache.sales.filter(s=>s.reseller_id===chosen.id);
+    const saleIds=new Set(sales.map(s=>s.id));
+    const items=cache.saleItems.filter(i=>saleIds.has(i.sale_id));
+    const deposits=cache.wallet.filter(w=>w.reseller_id===chosen.id&&w.transaction_type==="deposit"&&w.direction==="credit").reduce((sum,w)=>sum+Number(w.amount||0),0);
+    const total=sales.reduce((sum,s)=>sum+Number(s.total_amount||0),0);
+    const profit=items.reduce((sum,i)=>sum+(Number(i.unit_selling_price||0)-Number(i.unit_cost||0))*Number(i.quantity||0),0);
+    $("statementTitle").textContent=`${chosen.reseller_name||"Reseller"} · Statement`;
+    $("statementSales").textContent=money(total);
+    $("statementDeposits").textContent=money(deposits);
+    $("statementOutstanding").textContent=money(Math.max(0,total-deposits));
+    $("statementProfit").textContent=cache.saleItemsError?"Unavailable":money(profit);
+    const rows=sales.map(s=>{
+      const saleItems=items.filter(i=>i.sale_id===s.id);
+      const productText=saleItems.map(i=>{const p=cache.products.find(x=>x.id===i.product_id);return `${safe(p?.product_name||"Product")} × ${Number(i.quantity||0)}`;}).join(", ")||"Item details unavailable";
+      const saleProfit=saleItems.reduce((sum,i)=>sum+(Number(i.unit_selling_price||0)-Number(i.unit_cost||0))*Number(i.quantity||0),0);
+      return `<tr>${cell(new Date(s.sale_date).toLocaleString())}${cell(productText)}${cell(s.payment_method||"—")}${cell(money(s.total_amount))}${cell(cache.saleItemsError?"Unavailable":money(saleProfit))}</tr>`;
+    });
+    $("statementTable").innerHTML=table(["Date","Products / Qty","Payment","Sale total","Reseller profit"],rows,"No sales recorded for this reseller yet.");
+  }
+  $("statementReseller")?.addEventListener("change",renderResellerStatement);
+
   function render(){
     const salesTotal=cache.sales.reduce((a,x)=>a+Number(x.total_amount||0),0);
     const walletBalance=cache.wallet.reduce((a,x)=>a+(x.direction==="credit"?Number(x.amount): -Number(x.amount)),0);
@@ -336,6 +371,7 @@
     $("reportOutstanding").textContent=money(outstanding);
     $("ownerProfitCard").classList.toggle("hidden",profile.role!=="owner");
     $("reportProducts").textContent=cache.products.length;$("reportResellers").textContent=profile.role==="owner"?cache.resellers.length:"1";$("reportWallet").textContent=cache.wallet.length;
+    renderResellerStatement();
     $("workspaceInfo").textContent=`${business.business_name} · ${profile.role==="owner"?"Owner account":"Reseller account"} · Currency: ${business.currency||"SAR"}`;
     const saleRows=cache.sales.slice(0,8).map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`);
     $("recentSales").innerHTML=table(["Date","Payment","Total"],saleRows,"No sales have been recorded yet.");
