@@ -61,6 +61,7 @@
         <input class="field" id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
         <button class="primary full" id="loginBtn" type="submit">Sign in</button>
         <button class="text-link" id="forgotPasswordBtn" type="button">Forgot password?</button>
+        <button class="text-link" id="resendConfirmationBtn" type="button">Resend confirmation email</button>
         <div id="authMessage" aria-live="polite"></div>
         <p class="notice">Your account access is managed by the business owner. Contact the owner if you need a reseller account.</p>
       </form>
@@ -496,6 +497,34 @@
     catch(err){await client.auth.signOut();currentUser=null;showMessage(err.message||"Unable to load your workspace.");}
     $("loginBtn").disabled=false;$("loginBtn").textContent="Sign in";
   });
+  $("resendConfirmationBtn").addEventListener("click",async()=>{
+    const email=$("email").value.trim();
+    if(!email){
+      showMessage("Enter the reseller email address first.");
+      $("email").focus();
+      return;
+    }
+    const btn=$("resendConfirmationBtn");
+    btn.disabled=true;
+    btn.textContent="Sending confirmation…";
+    showMessage("");
+    try{
+      const redirectTo=window.location.origin+window.location.pathname;
+      const {error}=await client.auth.resend({
+        type:"signup",
+        email,
+        options:{emailRedirectTo:redirectTo}
+      });
+      if(error)throw error;
+      showMessage("If this account is still waiting for confirmation, a new confirmation email has been sent. Check Inbox and Spam/Junk.","success");
+    }catch(err){
+      showMessage(err.message||"Could not resend confirmation email.");
+    }finally{
+      btn.disabled=false;
+      btn.textContent="Resend confirmation email";
+    }
+  });
+
   $("forgotPasswordBtn").addEventListener("click",()=>{
     $("recoveryEmail").value=$("email").value.trim();
     $("recoveryRequestMessage").textContent="";
