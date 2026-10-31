@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1456d8">
+  <title>NOON DISTRIBUTION ONLINE</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--blue:#1456d8;--blue2:#0e3fba;--pale:#edf4ff;--ink:#14213d;--muted:#71809a;--line:#e5ebf4;--bg:#f5f8fd;--white:#fff;--green:#138a55;--red:#c43d4d;--shadow:0 14px 40px rgba(25,57,110,.08)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    button,input{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+    .auth-wrap{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr;background:#fff}
+    .brand-panel{padding:clamp(28px,6vw,80px);background:linear-gradient(145deg,#0d3da9,#1765e8 65%,#5ca0ff);color:#fff;display:flex;flex-direction:column;justify-content:space-between;min-height:100vh}
+    .brand{display:flex;align-items:center;gap:13px;font-weight:800;letter-spacing:.3px}.brand-mark{width:46px;height:46px;border-radius:14px;background:#fff;color:var(--blue);display:grid;place-items:center;font-size:22px;font-weight:900}
+    .brand-panel h1{font-size:clamp(34px,5vw,58px);line-height:1.08;max-width:580px;margin:40px 0 18px}.brand-panel p{max-width:490px;color:#dce9ff;font-size:17px}.brand-foot{font-size:13px;color:#dce9ff}
+    .auth-side{display:grid;place-items:center;padding:28px}.auth-card{width:min(420px,100%)}.auth-card h2{font-size:29px;margin:0 0 8px}.sub{color:var(--muted);margin:0 0 28px}
+    label{display:block;font-size:13px;font-weight:700;margin:17px 0 7px}.field{width:100%;padding:14px 15px;border:1px solid #d8e0ec;border-radius:11px;background:#fff;outline:none}.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1456d81a}
+    .primary{border:0;border-radius:11px;background:var(--blue);color:#fff;padding:13px 18px;font-weight:750}.primary:hover{background:var(--blue2)}.full{width:100%;margin-top:22px}.notice{font-size:12px;color:var(--muted);margin-top:18px}.error{color:var(--red);font-size:13px;margin-top:12px}.success{color:var(--green);font-size:13px;margin-top:12px}
+    .app{min-height:100vh;display:grid;grid-template-columns:255px 1fr}.sidebar{background:#fff;border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:24px}.sidebar .brand{padding:0 10px;color:var(--ink);font-size:14px}.sidebar .brand-mark{background:var(--pale)}
+    .nav-label{padding:0 12px;color:#9aa6b9;font-size:10px;font-weight:800;letter-spacing:1.3px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#60708b;text-align:left;padding:11px 13px;border-radius:10px;font-weight:650}.nav button.active,.nav button:hover{background:var(--pale);color:var(--blue)}
+    .sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:16px 10px 0}.user-mini{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.logout{width:100%;margin-top:12px;border:1px solid var(--line);background:#fff;padding:10px;border-radius:9px;color:#52617a;font-weight:700}
+    .main{min-width:0}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;gap:15px}.top-title{font-weight:800;font-size:18px}.top-right{display:flex;align-items:center;gap:12px}.pill{background:#eaf8f1;color:#16804e;border-radius:30px;padding:6px 11px;font-size:11px;font-weight:800}
+    .content{padding:30px;max-width:1400px;margin:auto}.welcome{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:24px}.welcome h1{font-size:27px;margin:0 0 4px}.welcome p{margin:0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.stat,.panel{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}.stat{padding:19px}.stat .k{color:var(--muted);font-size:12px;font-weight:700}.stat .v{font-size:27px;font-weight:850;margin-top:9px;letter-spacing:-.5px}.stat .hint{font-size:11px;color:#94a0b2;margin-top:3px}
+    .two{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-top:18px}.panel{padding:20px;min-width:0}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.panel h3{margin:0;font-size:16px}.muted{color:var(--muted);font-size:12px}
+    .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);font-size:13px}th{color:#8b98ad;font-size:11px;text-transform:uppercase;letter-spacing:.5px}td{color:#33415b}.empty{padding:25px;text-align:center;color:var(--muted);font-size:13px}
+    .section{display:none}.section.active{display:block}.section-title{margin:0 0 18px}.section-title h1{margin:0;font-size:25px}.section-title p{margin:5px 0 0;color:var(--muted)}
+    .loading{color:var(--muted);padding:20px}.badge{font-size:11px;font-weight:800;padding:5px 9px;border-radius:30px;background:#eef3fb;color:#60708b}
+    @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app{grid-template-columns:210px 1fr}.two{grid-template-columns:1fr}}
+    @media(max-width:680px){.auth-wrap{grid-template-columns:1fr}.brand-panel{min-height:auto;padding:25px}.brand-panel h1{font-size:34px;margin:28px 0 10px}.brand-panel p{font-size:14px}.brand-foot{margin-top:25px}.auth-side{padding:35px 22px}.app{display:block}.sidebar{position:sticky;top:0;z-index:5;border-right:0;border-bottom:1px solid var(--line);padding:10px;gap:8px}.sidebar .brand{display:none}.nav-label,.sidebar-bottom{display:none}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;padding:9px 12px;font-size:12px}.topbar{height:60px;padding:0 16px}.content{padding:20px 14px}.welcome h1{font-size:22px}.grid{gap:10px}.stat{padding:14px}.stat .v{font-size:22px}.top-right .pill{display:none}}
+  </style>
+</head>
+<body>
+  <section id="authView" class="auth-wrap">
+    <div class="brand-panel">
+      <div class="brand"><div class="brand-mark">N</div><span>NOON DISTRIBUTION</span></div>
+      <div>
+        <h1>Distribution, made clear.</h1>
+        <p>Manage products, reseller deposits, daily stock distribution, sales and business performance in one place.</p>
+      </div>
+      <div class="brand-foot">NOON DISTRIBUTION ONLINE · SAR</div>
+    </div>
+    <div class="auth-side">
+      <form id="loginForm" class="auth-card">
+        <h2>Welcome back</h2>
+        <p class="sub">Sign in to your distribution workspace.</p>
+        <label for="email">Email address</label>
+        <input class="field" id="email" type="email" autocomplete="username" placeholder="name@example.com" required>
+        <label for="password">Password</label>
+        <input class="field" id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+        <button class="primary full" id="loginBtn" type="submit">Sign in</button>
+        <div id="authMessage" aria-live="polite"></div>
+        <p class="notice">Your account access is managed by the business owner. Contact the owner if you need a reseller account.</p>
+      </form>
+    </div>
+  </section>
+
+  <section id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><span>NOON DISTRIBUTION</span></div>
+      <div>
+        <div class="nav-label">WORKSPACE</div>
+        <nav class="nav" id="navigation">
+          <button class="active" data-section="dashboard">▦ &nbsp; Dashboard</button>
+          <button data-section="products">▣ &nbsp; Products</button>
+          <button data-section="resellers" id="resellersNav">♙ &nbsp; Resellers</button>
+          <button data-section="distributions">⇄ &nbsp; Distributions</button>
+          <button data-section="sales">▤ &nbsp; Sales</button>
+          <button data-section="wallet">◉ &nbsp; Deposits & Balance</button>
+          <button data-section="reports">▥ &nbsp; Reports</button>
+        </nav>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="user-mini" id="userEmail"></div>
+        <button class="logout" id="logoutBtn">Sign out</button>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="top-title" id="businessTitle">NOON DISTRIBUTION</div><div class="top-right"><span class="pill" id="rolePill">OWNER</span><span class="badge">SAR · Saudi Riyal</span></div></header>
+      <div class="content">
+        <div class="welcome"><div><h1 id="welcomeTitle">Dashboard</h1><p id="welcomeSub">Here is your business overview.</p></div></div>
+        <section id="dashboard" class="section active">
+          <div class="grid">
+            <div class="stat"><div class="k">Products</div><div class="v" id="statProducts">—</div><div class="hint">Active products</div></div>
+            <div class="stat"><div class="k">Resellers</div><div class="v" id="statResellers">—</div><div class="hint">Registered accounts</div></div>
+            <div class="stat"><div class="k">Sales</div><div class="v" id="statSales">SAR 0.00</div><div class="hint">Recorded sales total</div></div>
+            <div class="stat"><div class="k">Wallet balance</div><div class="v" id="statWallet">SAR 0.00</div><div class="hint">Available reseller balance</div></div>
+          </div>
+          <div class="two">
+            <div class="panel"><div class="panel-head"><h3>Recent sales</h3><span class="muted">Latest records</span></div><div class="table-wrap" id="recentSales"><div class="empty">Loading sales…</div></div></div>
+            <div class="panel"><div class="panel-head"><h3>Workspace status</h3><span class="badge">Connected</span></div><p class="muted" id="workspaceInfo">Loading your business information…</p><p class="muted">Use the menu to view your products, resellers, distributions and payment records.</p></div>
+          </div>
+        </section>
+        <section id="products" class="section"><div class="section-title"><h1>Products</h1><p>Products and owner-controlled reseller prices.</p></div><div class="panel"><div class="table-wrap" id="productsTable"><div class="empty">Loading products…</div></div></div></section>
+        <section id="resellers" class="section"><div class="section-title"><h1>Resellers</h1><p>Reseller accounts linked to this business.</p></div><div class="panel"><div class="table-wrap" id="resellersTable"><div class="empty">Loading resellers…</div></div></div></section>
+        <section id="distributions" class="section"><div class="section-title"><h1>Distributions</h1><p>Stock issued to resellers.</p></div><div class="panel"><div class="table-wrap" id="distributionsTable"><div class="empty">Loading distributions…</div></div></div></section>
+        <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account.</p></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
+        <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history.</p></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
+        <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Business summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Recorded sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div></section>
+      </div>
+    </main>
+  </section>
+
+<script>
+(() => {
+  const SUPABASE_URL = "https://uqpfihwmitmjntegemrd.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yTOsahW0g8F5EGg6C_yLAQ_1WjHFgAp";
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  let currentUser = null, profile = null, business = null, resellerAccount = null;
+  let cache = {products:[],resellers:[],sales:[],wallet:[],distributions:[]};
+  const $ = id => document.getElementById(id);
+  const money = n => new Intl.NumberFormat("en-SA",{style:"currency",currency:"SAR"}).format(Number(n||0));
+  const safe = v => String(v ?? "");
+  function cell(v){return `<td>${safe(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</td>`}
+  function table(headers, rows, empty){ if(!rows.length)return `<div class="empty">${empty}</div>`; return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`; }
+  function showMessage(msg, type="error"){ $("authMessage").className=type; $("authMessage").textContent=msg; }
+  function showApp(){ $("authView").classList.add("hidden"); $("appView").classList.remove("hidden"); $("userEmail").textContent=currentUser.email||""; }
+  function showAuth(){ $("appView").classList.add("hidden"); $("authView").classList.remove("hidden"); }
+  function activateSection(name){ document.querySelectorAll(".section").forEach(s=>s.classList.toggle("active",s.id===name)); document.querySelectorAll("#navigation button").forEach(b=>b.classList.toggle("active",b.dataset.section===name)); const title=document.querySelector(`#navigation button[data-section="${name}"]`); $("welcomeTitle").textContent=title?title.textContent.replace(/^[^A-Za-z]+/,"").trim():"Dashboard"; }
+  $("navigation").addEventListener("click",e=>{const b=e.target.closest("button[data-section]");if(b)activateSection(b.dataset.section);});
+  async function loadWorkspace(){
+    const p=await client.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
+    if(p.error) throw p.error; profile=p.data;
+    if(!profile) throw new Error("Your profile is not ready. Please contact the business owner.");
+    const owner=profile.role==="owner";
+    if(owner){
+      const b=await client.from("businesses").select("*").eq("owner_id",currentUser.id).limit(1).maybeSingle();
+      if(b.error)throw b.error; business=b.data;
+    }else{
+      const r=await client.from("reseller_accounts").select("*").eq("user_id",currentUser.id).limit(1).maybeSingle();
+      if(r.error)throw r.error; resellerAccount=r.data;
+      if(!resellerAccount)throw new Error("Your reseller account has not been linked yet. Please contact the owner.");
+      const b=await client.from("businesses").select("*").eq("id",resellerAccount.business_id).maybeSingle();
+      if(b.error)throw b.error;business=b.data;
+    }
+    if(!business)throw new Error("No business is linked to this account yet.");
+    $("businessTitle").textContent=business.business_name;
+    $("rolePill").textContent=owner?"OWNER / ADMIN":"RESELLER";
+    $("resellersNav").classList.toggle("hidden",!owner);
+    $("welcomeSub").textContent=owner?"Here is your business overview.":"Here is your reseller overview.";
+    const bid=business.id;
+    const [products,resellers,sales,wallet,distributions]=await Promise.all([
+      client.from("products").select("*").eq("business_id",bid).order("created_at",{ascending:false}),
+      client.from("reseller_accounts").select("*").eq("business_id",bid).order("created_at",{ascending:false}),
+      client.from("sales").select("*").eq("business_id",bid).order("sale_date",{ascending:false}).limit(100),
+      client.from("wallet_transactions").select("*").eq("business_id",bid).order("created_at",{ascending:false}).limit(100),
+      client.from("distributions").select("*").eq("business_id",bid).order("created_at",{ascending:false}).limit(100)
+    ]);
+    for(const x of [products,resellers,sales,wallet,distributions])if(x.error)throw x.error;
+    cache={products:products.data||[],resellers:owner?(resellers.data||[]):[],sales:sales.data||[],wallet:wallet.data||[],distributions:distributions.data||[]};
+    if(!owner){
+      cache.products=cache.products;
+      cache.sales=cache.sales.filter(x=>x.reseller_id===resellerAccount.id);
+      cache.wallet=cache.wallet.filter(x=>x.reseller_id===resellerAccount.id);
+      cache.distributions=cache.distributions.filter(x=>x.reseller_id===resellerAccount.id);
+    }
+    render();
+  }
+  function render(){
+    const salesTotal=cache.sales.reduce((a,x)=>a+Number(x.total_amount||0),0);
+    const walletBalance=cache.wallet.reduce((a,x)=>a+(x.direction==="credit"?Number(x.amount): -Number(x.amount)),0);
+    $("statProducts").textContent=cache.products.length;
+    $("statResellers").textContent=profile.role==="owner"?cache.resellers.length:"1";
+    $("statSales").textContent=money(salesTotal);
+    $("statWallet").textContent=money(walletBalance);
+    $("reportSales").textContent=money(salesTotal);$("reportProducts").textContent=cache.products.length;$("reportResellers").textContent=profile.role==="owner"?cache.resellers.length:"1";$("reportWallet").textContent=cache.wallet.length;
+    $("workspaceInfo").textContent=`${business.business_name} · ${profile.role==="owner"?"Owner account":"Reseller account"} · Currency: ${business.currency||"SAR"}`;
+    const saleRows=cache.sales.slice(0,8).map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`);
+    $("recentSales").innerHTML=table(["Date","Payment","Total"],saleRows,"No sales have been recorded yet.");
+    $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock"],cache.products.map(x=>`<tr>${cell(x.product_name)}${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}</tr>`),"No products added yet.");
+    $("resellersTable").innerHTML=table(["Reseller","Phone","Status"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}</tr>`),"No reseller accounts added yet.");
+    $("distributionsTable").innerHTML=table(["Date","Total","Status"],cache.distributions.map(x=>`<tr>${cell(x.distribution_date)}${cell(money(x.total_amount))}${cell(x.status)}</tr>`),"No distributions recorded yet.");
+    $("salesTable").innerHTML=table(["Date","Payment","Total"],cache.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`),"No sales recorded yet.");
+    $("walletTable").innerHTML=table(["Date","Type","Direction","Amount","Description"],cache.wallet.map(x=>`<tr>${cell(new Date(x.created_at).toLocaleString())}${cell(x.transaction_type)}${cell(x.direction)}${cell(money(x.amount))}${cell(x.description||"—")}</tr>`),"No wallet transactions recorded yet.");
+  }
+  $("loginForm").addEventListener("submit",async e=>{
+    e.preventDefault();$("loginBtn").disabled=true;$("loginBtn").textContent="Signing in…";showMessage("");
+    const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+    if(error){showMessage(error.message);$("loginBtn").disabled=false;$("loginBtn").textContent="Sign in";return;}
+    currentUser=data.user;
+    try{await loadWorkspace();showApp();}
+    catch(err){await client.auth.signOut();currentUser=null;showMessage(err.message||"Unable to load your workspace.");}
+    $("loginBtn").disabled=false;$("loginBtn").textContent="Sign in";
+  });
+  $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();currentUser=null;profile=null;business=null;showAuth();});
+  client.auth.getSession().then(async({data})=>{if(data.session){currentUser=data.session.user;try{await loadWorkspace();showApp();}catch(e){await client.auth.signOut();showAuth();showMessage(e.message);}}});
+})();
+</script>
+</body>
+</html>
