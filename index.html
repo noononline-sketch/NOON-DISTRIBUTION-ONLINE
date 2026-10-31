@@ -195,6 +195,29 @@
     </form>
   </div>
 
+
+  <div id="depositModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="depositModalTitle">
+    <form id="depositForm" class="modal-card">
+      <h2 id="depositModalTitle">Record Reseller Deposit</h2>
+      <p class="modal-sub">Record a payment received from a reseller. The outstanding balance will update automatically.</p>
+      <label for="depositReseller">Reseller</label>
+      <select class="field" id="depositReseller" required></select>
+      <label for="depositAmount">Deposit amount (SAR)</label>
+      <input class="field" id="depositAmount" type="number" min="0.01" step="0.01" placeholder="Enter amount" required>
+      <label for="depositPaymentMethod">Payment method</label>
+      <select class="field" id="depositPaymentMethod" required>
+        <option value="cash">Cash</option><option value="card">Card</option><option value="transfer">Bank transfer</option>
+      </select>
+      <label for="depositDescription">Description (optional)</label>
+      <input class="field" id="depositDescription" type="text" placeholder="e.g. Weekly payment">
+      <div id="depositFormMessage" class="modal-message" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button class="secondary-btn" id="cancelDeposit" type="button">Cancel</button>
+        <button class="primary" id="saveDepositBtn" type="submit">Save Deposit</button>
+      </div>
+    </form>
+  </div>
+
   <section id="appView" class="app hidden">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><span>NOON DISTRIBUTION</span></div>
@@ -422,6 +445,7 @@
     $("recentSales").innerHTML=table(["Date","Payment","Total"],saleRows,"No sales have been recorded yet.");
     document.querySelectorAll('[data-action="add-product"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
     $("recordSaleButton").classList.toggle("hidden",profile.role!=="reseller");
+    document.querySelectorAll('[data-action="add-deposit"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
     const productRows=cache.products.map(x=>`<tr>${cell(x.product_name)}${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
     $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],productRows,"No products added yet.");
     $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
@@ -462,20 +486,70 @@
         openSaleModal();
         return;
       }else if(action==="add-deposit"){
-        let resellerId=resellerAccount?.id;
-        const options=cache.resellers;
-        if(profile.role==="owner"){
-          if(!options.length){alert("Add a reseller first.");return;}
-          const selected=ask("Choose reseller number:\n"+options.map((r,i)=>`${i+1}. ${r.reseller_name}`).join("\n"),"1");
-          if(selected===null)return;const r=options[Number(selected)-1];if(!r){alert("Invalid reseller.");return;}resellerId=r.id;
-        }
-        const amount=getAmount("Deposit amount (SAR):","0");if(amount===null||amount<=0)return;
-        const desc=ask("Description (optional):","Cash deposit");if(desc===null)return;
-        const {error}=await client.from("wallet_transactions").insert({business_id:bid,reseller_id:resellerId,transaction_type:"deposit",amount,direction:"credit",description:desc||null});if(error)throw error;
+        if(profile.role!=="owner"){alert("Only the business owner can record reseller deposits.");return;}
+        openDepositModal();
+        return;
       }
       await loadWorkspace();alert("Saved successfully.");
     }catch(err){alert("Could not save: "+(err.message||String(err)));}
   }
+
+
+  function openDepositModal(){
+    const select=$("depositReseller");
+    select.innerHTML=cache.resellers.filter(r=>r.active).map(r=>
+      `<option value="${r.id}">${safe(r.reseller_name).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</option>`
+    ).join("");
+    $("depositForm").reset();
+    $("depositFormMessage").textContent="";
+    $("depositFormMessage").className="modal-message";
+    $("saveDepositBtn").disabled=false;
+    $("saveDepositBtn").textContent="Save Deposit";
+    $("depositModal").classList.remove("hidden");
+    if(!cache.resellers.some(r=>r.active)){
+      $("depositFormMessage").className="modal-message error";
+      $("depositFormMessage").textContent="There is no active reseller. Add or activate a reseller first.";
+      $("saveDepositBtn").disabled=true;
+    }
+  }
+  function closeDepositModal(){
+    $("depositModal").classList.add("hidden");
+    $("depositForm").reset();
+  }
+  $("cancelDeposit").addEventListener("click",closeDepositModal);
+  $("depositModal").addEventListener("click",e=>{if(e.target===$("depositModal"))closeDepositModal();});
+  $("depositForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const resellerId=$("depositReseller").value;
+    const amount=Number($("depositAmount").value);
+    const method=$("depositPaymentMethod").value;
+    const description=$("depositDescription").value.trim();
+    const message=$("depositFormMessage"),btn=$("saveDepositBtn");
+    if(profile?.role!=="owner"){message.className="modal-message error";message.textContent="Only the owner can record deposits.";return;}
+    if(!resellerId||!Number.isFinite(amount)||amount<=0){
+      message.className="modal-message error";
+      message.textContent="Choose a reseller and enter a deposit amount greater than zero.";
+      return;
+    }
+    btn.disabled=true;btn.textContent="Saving…";
+    message.className="modal-message";message.textContent="";
+    try{
+      const paymentLabel={cash:"Cash",card:"Card",transfer:"Bank transfer"}[method]||method;
+      const fullDescription=[`Payment method: ${paymentLabel}`,description].filter(Boolean).join(" · ");
+      const {error}=await client.from("wallet_transactions").insert({
+        business_id:business.id,reseller_id:resellerId,transaction_type:"deposit",
+        amount,direction:"credit",description:fullDescription
+      });
+      if(error)throw error;
+      closeDepositModal();
+      await loadWorkspace();
+      alert("Deposit saved successfully. Reseller balance has been updated.");
+    }catch(err){
+      message.className="modal-message error";
+      message.textContent=err.message||"Could not save deposit.";
+      btn.disabled=false;btn.textContent="Save Deposit";
+    }
+  });
 
   function openSaleModal(){
     const select=$("saleProduct");
