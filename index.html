@@ -17,6 +17,8 @@
     .auth-side{display:grid;place-items:center;padding:28px}.auth-card{width:min(420px,100%)}.auth-card h2{font-size:29px;margin:0 0 8px}.sub{color:var(--muted);margin:0 0 28px}
     label{display:block;font-size:13px;font-weight:700;margin:17px 0 7px}.field{width:100%;padding:14px 15px;border:1px solid #d8e0ec;border-radius:11px;background:#fff;outline:none}.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1456d81a}
     .primary{border:0;border-radius:11px;background:var(--blue);color:#fff;padding:13px 18px;font-weight:750}.primary:hover{background:var(--blue2)}.full{width:100%;margin-top:22px}.notice{font-size:12px;color:var(--muted);margin-top:18px}.error{color:var(--red);font-size:13px;margin-top:12px}.success{color:var(--green);font-size:13px;margin-top:12px}
+    .text-link{display:block;margin:14px auto 0;border:0;background:transparent;color:var(--blue);font-weight:700;padding:6px 10px}
+    .text-link:hover{text-decoration:underline}
     .app{min-height:100vh;display:grid;grid-template-columns:255px 1fr}.sidebar{background:#fff;border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:24px}.sidebar .brand{padding:0 10px;color:var(--ink);font-size:14px}.sidebar .brand-mark{background:var(--pale)}
     .nav-label{padding:0 12px;color:#9aa6b9;font-size:10px;font-weight:800;letter-spacing:1.3px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#60708b;text-align:left;padding:11px 13px;border-radius:10px;font-weight:650}.nav button.active,.nav button:hover{background:var(--pale);color:var(--blue)}
     .sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:16px 10px 0}.user-mini{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.logout{width:100%;margin-top:12px;border:1px solid var(--line);background:#fff;padding:10px;border-radius:9px;color:#52617a;font-weight:700}
@@ -50,8 +52,30 @@
         <label for="password">Password</label>
         <input class="field" id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
         <button class="primary full" id="loginBtn" type="submit">Sign in</button>
+        <button class="text-link" id="forgotPasswordBtn" type="button">Forgot password?</button>
         <div id="authMessage" aria-live="polite"></div>
         <p class="notice">Your account access is managed by the business owner. Contact the owner if you need a reseller account.</p>
+      </form>
+
+      <form id="resetRequestForm" class="auth-card hidden">
+        <h2>Reset your password</h2>
+        <p class="sub">Enter your account email and we’ll send you a secure reset link.</p>
+        <label for="recoveryEmail">Email address</label>
+        <input class="field" id="recoveryEmail" type="email" autocomplete="email" placeholder="name@example.com" required>
+        <button class="primary full" id="sendRecoveryBtn" type="submit">Send reset link</button>
+        <button class="text-link" id="backToLoginFromRequest" type="button">Back to sign in</button>
+        <div id="recoveryRequestMessage" aria-live="polite"></div>
+      </form>
+
+      <form id="resetPasswordForm" class="auth-card hidden">
+        <h2>Create a new password</h2>
+        <p class="sub">Choose a new password for your NOON DISTRIBUTION account.</p>
+        <label for="newPassword">New password</label>
+        <input class="field" id="newPassword" type="password" autocomplete="new-password" placeholder="Enter new password" minlength="8" required>
+        <label for="confirmNewPassword">Confirm new password</label>
+        <input class="field" id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Confirm new password" minlength="8" required>
+        <button class="primary full" id="saveNewPasswordBtn" type="submit">Save new password</button>
+        <div id="resetPasswordMessage" aria-live="polite"></div>
       </form>
     </div>
   </section>
@@ -115,6 +139,14 @@
   function cell(v){return `<td>${safe(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</td>`}
   function table(headers, rows, empty){ if(!rows.length)return `<div class="empty">${empty}</div>`; return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`; }
   function showMessage(msg, type="error"){ $("authMessage").className=type; $("authMessage").textContent=msg; }
+  function showAuthForm(formId){
+    ["loginForm","resetRequestForm","resetPasswordForm"].forEach(id=>$(id).classList.toggle("hidden",id!==formId));
+  }
+  function showResetPassword(){
+    showAuth();
+    showAuthForm("resetPasswordForm");
+    $("resetPasswordMessage").textContent="";
+  }
   function showApp(){ $("authView").classList.add("hidden"); $("appView").classList.remove("hidden"); $("userEmail").textContent=currentUser.email||""; }
   function showAuth(){ $("appView").classList.add("hidden"); $("authView").classList.remove("hidden"); }
   function activateSection(name){ document.querySelectorAll(".section").forEach(s=>s.classList.toggle("active",s.id===name)); document.querySelectorAll("#navigation button").forEach(b=>b.classList.toggle("active",b.dataset.section===name)); const title=document.querySelector(`#navigation button[data-section="${name}"]`); $("welcomeTitle").textContent=title?title.textContent.replace(/^[^A-Za-z]+/,"").trim():"Dashboard"; }
@@ -183,8 +215,76 @@
     catch(err){await client.auth.signOut();currentUser=null;showMessage(err.message||"Unable to load your workspace.");}
     $("loginBtn").disabled=false;$("loginBtn").textContent="Sign in";
   });
-  $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();currentUser=null;profile=null;business=null;showAuth();});
-  client.auth.getSession().then(async({data})=>{if(data.session){currentUser=data.session.user;try{await loadWorkspace();showApp();}catch(e){await client.auth.signOut();showAuth();showMessage(e.message);}}});
+  $("forgotPasswordBtn").addEventListener("click",()=>{
+    $("recoveryEmail").value=$("email").value.trim();
+    $("recoveryRequestMessage").textContent="";
+    showAuthForm("resetRequestForm");
+  });
+  $("backToLoginFromRequest").addEventListener("click",()=>{
+    $("authMessage").textContent="";
+    showAuthForm("loginForm");
+  });
+  $("resetRequestForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const btn=$("sendRecoveryBtn");
+    btn.disabled=true;btn.textContent="Sending…";
+    $("recoveryRequestMessage").className="";
+    const redirectTo=window.location.origin+window.location.pathname;
+    const {error}=await client.auth.resetPasswordForEmail($("recoveryEmail").value.trim(),{redirectTo});
+    if(error){
+      $("recoveryRequestMessage").className="error";
+      $("recoveryRequestMessage").textContent=error.message;
+    }else{
+      $("recoveryRequestMessage").className="success";
+      $("recoveryRequestMessage").textContent="If an account exists for this email, a password reset link has been sent. Please check your inbox.";
+    }
+    btn.disabled=false;btn.textContent="Send reset link";
+  });
+  $("resetPasswordForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const password=$("newPassword").value;
+    const confirm=$("confirmNewPassword").value;
+    const msg=$("resetPasswordMessage");
+    if(password.length<8){
+      msg.className="error";msg.textContent="Password must be at least 8 characters.";return;
+    }
+    if(password!==confirm){
+      msg.className="error";msg.textContent="The passwords do not match.";return;
+    }
+    const btn=$("saveNewPasswordBtn");
+    btn.disabled=true;btn.textContent="Saving…";
+    const {error}=await client.auth.updateUser({password});
+    if(error){
+      msg.className="error";msg.textContent=error.message;
+      btn.disabled=false;btn.textContent="Save new password";return;
+    }
+    await client.auth.signOut();
+    currentUser=null;profile=null;business=null;resellerAccount=null;
+    history.replaceState(null,"",window.location.pathname);
+    showAuth();showAuthForm("loginForm");
+    $("password").value="";
+    showMessage("Your password has been updated. You can now sign in with your new password.","success");
+    btn.disabled=false;btn.textContent="Save new password";
+  });
+  $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();currentUser=null;profile=null;business=null;showAuth();showAuthForm("loginForm");});
+  client.auth.onAuthStateChange((event,session)=>{
+    if(event==="PASSWORD_RECOVERY" && session){
+      currentUser=session.user;
+      showResetPassword();
+    }
+  });
+  const recoveryLink=window.location.hash.includes("type=recovery");
+  if(recoveryLink){
+    showResetPassword();
+  }else{
+    client.auth.getSession().then(async({data})=>{
+      if(data.session){
+        currentUser=data.session.user;
+        try{await loadWorkspace();showApp();}
+        catch(e){await client.auth.signOut();currentUser=null;showAuth();showAuthForm("loginForm");showMessage(e.message);}
+      }
+    });
+  }
 })();
 </script>
 </body>
