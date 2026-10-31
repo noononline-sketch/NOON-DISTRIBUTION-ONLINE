@@ -30,6 +30,13 @@
     .section{display:none}.section.active{display:block}.section-title{margin:0 0 18px}.section-title h1{margin:0;font-size:25px}.section-title p{margin:5px 0 0;color:var(--muted)}
     .loading{color:var(--muted);padding:20px}.badge{font-size:11px;font-weight:800;padding:5px 9px;border-radius:30px;background:#eef3fb;color:#60708b}
     .section-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}.action-btn{border:0;border-radius:9px;background:var(--blue);color:#fff;padding:9px 13px;font-weight:750}.row-action{border:0;border-radius:7px;padding:6px 9px;margin-right:5px;background:#edf4ff;color:var(--blue);font-weight:700}.row-action.danger{background:#fff0f1;color:#b42332}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,29,55,.48);display:grid;place-items:center;padding:18px;z-index:50}
+    .modal-card{width:min(480px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:25px;box-shadow:0 24px 70px rgba(10,30,70,.22)}
+    .modal-card h2{margin:0 0 6px;font-size:22px}.modal-card .modal-sub{margin:0 0 18px;color:var(--muted);font-size:13px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+    .secondary-btn{border:1px solid var(--line);background:#fff;color:#52617a;border-radius:10px;padding:11px 16px;font-weight:700}
+    .modal-message{font-size:13px;margin-top:12px;min-height:18px}.modal-message.error{color:var(--red)}.modal-message.success{color:var(--green)}
+    .primary:disabled,.secondary-btn:disabled{opacity:.6;cursor:wait}
     @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app{grid-template-columns:210px 1fr}.two{grid-template-columns:1fr}}
     @media(max-width:680px){.auth-wrap{grid-template-columns:1fr}.brand-panel{min-height:auto;padding:25px}.brand-panel h1{font-size:34px;margin:28px 0 10px}.brand-panel p{font-size:14px}.brand-foot{margin-top:25px}.auth-side{padding:35px 22px}.app{display:block}.sidebar{position:sticky;top:0;z-index:5;border-right:0;border-bottom:1px solid var(--line);padding:10px;gap:8px}.sidebar .brand{display:none}.nav-label,.sidebar-bottom{display:none}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;padding:9px 12px;font-size:12px}.topbar{height:60px;padding:0 16px}.content{padding:20px 14px}.welcome h1{font-size:22px}.grid{gap:10px}.stat{padding:14px}.stat .v{font-size:22px}.top-right .pill{display:none}}
   </style>
@@ -95,6 +102,48 @@
       </form>
     </div>
   </section>
+
+  <div id="addResellerModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="addResellerTitle">
+    <form id="addResellerForm" class="modal-card">
+      <h2 id="addResellerTitle">Add New Reseller</h2>
+      <p class="modal-sub">Enter the reseller details below. An invitation link will be created for this email.</p>
+      <label for="newResellerName">Reseller name</label>
+      <input class="field" id="newResellerName" type="text" placeholder="Enter reseller name" required>
+      <label for="newResellerPhone">Phone number</label>
+      <input class="field" id="newResellerPhone" type="tel" placeholder="Enter phone number (optional)">
+      <label for="newResellerEmail">Email address</label>
+      <input class="field" id="newResellerEmail" type="email" placeholder="name@example.com" required>
+      <div id="addResellerMessage" class="modal-message" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button class="secondary-btn" id="cancelAddReseller" type="button">Cancel</button>
+        <button class="primary" id="sendResellerInviteBtn" type="submit">Send Invitation</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="productModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+    <form id="productForm" class="modal-card">
+      <h2 id="productModalTitle">Add New Product</h2>
+      <p class="modal-sub">Enter all product details in one form.</p>
+      <label for="productNameInput">Product name</label>
+      <input class="field" id="productNameInput" type="text" placeholder="Enter product name" required>
+      <label for="productSkuInput">SKU</label>
+      <input class="field" id="productSkuInput" type="text" placeholder="SKU (optional)">
+      <label for="productCostInput">Purchase cost (SAR)</label>
+      <input class="field" id="productCostInput" type="number" min="0" step="0.01" placeholder="0.00" required>
+      <label for="productResellerPriceInput">Reseller price (SAR)</label>
+      <input class="field" id="productResellerPriceInput" type="number" min="0" step="0.01" placeholder="0.00" required>
+      <label for="productRetailPriceInput">Retail price (SAR)</label>
+      <input class="field" id="productRetailPriceInput" type="number" min="0" step="0.01" placeholder="0.00" required>
+      <label for="productStockInput">Stock quantity</label>
+      <input class="field" id="productStockInput" type="number" min="0" step="1" placeholder="0" required>
+      <div id="productFormMessage" class="modal-message" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button class="secondary-btn" id="cancelProductForm" type="button">Cancel</button>
+        <button class="primary" id="saveProductBtn" type="submit">Save Product</button>
+      </div>
+    </form>
+  </div>
 
   <section id="appView" class="app hidden">
     <aside class="sidebar">
@@ -230,41 +279,20 @@
     const bid=business.id;
     try{
       if(action==="add-product"||action==="edit-product"){
-        const old=cache.products.find(x=>x.id===id)||{};
-        const name=ask("Product name:",old.product_name||"");if(name===null||!name)return;
-        const sku=ask("SKU (optional):",old.sku||"");if(sku===null)return;
-        const cost=getAmount("Purchase cost (SAR):",old.purchase_cost??"0");if(cost===null)return;
-        const rp=getAmount("Reseller price (SAR):",old.reseller_price??"0");if(rp===null)return;
-        const retail=getAmount("Retail price (SAR):",old.retail_price??"0");if(retail===null)return;
-        const stock=getAmount("Stock quantity (whole number):",old.stock_quantity??"0");if(stock===null||!Number.isInteger(stock)){alert("Stock must be a whole number.");return;}
-        const data={business_id:bid,product_name:name,sku:sku||null,purchase_cost:cost,reseller_price:rp,retail_price:retail,stock_quantity:stock,active:old.active??true};
-        const q=action==="edit-product"?client.from("products").update(data).eq("id",id).eq("business_id",bid):client.from("products").insert(data);
-        const {error}=await q;if(error)throw error;
+        openProductModal(action,id);
+        return;
       }else if(action==="delete-product"){
         if(!confirm("Delete this product?"))return;
         const {error}=await client.from("products").delete().eq("id",id).eq("business_id",bid);if(error)throw error;
-      }else if(action==="add-reseller"||action==="edit-reseller"){
+      }else if(action==="add-reseller"){
+        openAddResellerModal();
+        return;
+      }else if(action==="edit-reseller"){
         const old=cache.resellers.find(x=>x.id===id)||{};
         const name=ask("Reseller name:",old.reseller_name||"");if(name===null||!name)return;
         const phone=ask("Phone (optional):",old.phone||"");if(phone===null)return;
-        if(action==="add-reseller"){
-          const email=ask("Reseller email address:","");if(email===null||!email)return;
-          const {data:{session}}=await client.auth.getSession();
-          if(!session)throw new Error("Please sign in again.");
-          const response=await fetch(`${SUPABASE_URL}/functions/v1/invite-reseller`,{
-            method:"POST",
-            headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY,"Authorization":`Bearer ${session.access_token}`},
-            body:JSON.stringify({email,reseller_name:name,phone,business_id:bid})
-          });
-          const result=await response.json();
-          if(!response.ok)throw new Error(result.error||"Invitation could not be created.");
-          const link=result.invite_url;
-          try{await navigator.clipboard.writeText(link);alert("Invitation created and copied! Send this link to the reseller:\n\n"+link);}
-          catch{prompt("Copy this invitation link and send it to the reseller:",link);}
-        }else{
-          const data={business_id:bid,reseller_name:name,phone:phone||null,active:old.active??true};
-          const {error}=await client.from("reseller_accounts").update(data).eq("id",id).eq("business_id",bid);if(error)throw error;
-        }
+        const data={business_id:bid,reseller_name:name,phone:phone||null,active:old.active??true};
+        const {error}=await client.from("reseller_accounts").update(data).eq("id",id).eq("business_id",bid);if(error)throw error;
       }else if(action==="toggle-reseller"){
         const old=cache.resellers.find(x=>x.id===id);if(!old)return;
         const {error}=await client.from("reseller_accounts").update({active:!old.active}).eq("id",id).eq("business_id",bid);if(error)throw error;
@@ -292,6 +320,125 @@
       await loadWorkspace();alert("Saved successfully.");
     }catch(err){alert("Could not save: "+(err.message||String(err)));}
   }
+  let editingProductId=null;
+  function openProductModal(action,id){
+    const old=cache.products.find(x=>x.id===id)||{};
+    editingProductId=action==="edit-product"?id:null;
+    $("productForm").reset();
+    $("productModalTitle").textContent=editingProductId?"Edit Product":"Add New Product";
+    $("saveProductBtn").textContent=editingProductId?"Save Changes":"Save Product";
+    $("productNameInput").value=old.product_name||"";
+    $("productSkuInput").value=old.sku||"";
+    $("productCostInput").value=old.purchase_cost??"";
+    $("productResellerPriceInput").value=old.reseller_price??"";
+    $("productRetailPriceInput").value=old.retail_price??"";
+    $("productStockInput").value=old.stock_quantity??"";
+    $("productFormMessage").textContent="";
+    $("productFormMessage").className="modal-message";
+    $("saveProductBtn").disabled=false;
+    $("productModal").classList.remove("hidden");
+    $("productNameInput").focus();
+  }
+  function closeProductModal(){
+    $("productModal").classList.add("hidden");
+    $("productForm").reset();
+    editingProductId=null;
+  }
+  $("cancelProductForm").addEventListener("click",closeProductModal);
+  $("productModal").addEventListener("click",e=>{
+    if(e.target===$("productModal"))closeProductModal();
+  });
+  $("productForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const message=$("productFormMessage"),btn=$("saveProductBtn");
+    const name=$("productNameInput").value.trim();
+    const sku=$("productSkuInput").value.trim();
+    const cost=Number($("productCostInput").value);
+    const resellerPrice=Number($("productResellerPriceInput").value);
+    const retailPrice=Number($("productRetailPriceInput").value);
+    const stock=Number($("productStockInput").value);
+    if(!name||![cost,resellerPrice,retailPrice,stock].every(Number.isFinite)||[cost,resellerPrice,retailPrice,stock].some(v=>v<0)||!Number.isInteger(stock)){
+      message.className="modal-message error";
+      message.textContent="Enter a product name, valid non-negative prices, and a whole-number stock quantity.";
+      return;
+    }
+    btn.disabled=true;btn.textContent="Saving…";
+    message.className="modal-message";message.textContent="";
+    try{
+      const old=cache.products.find(x=>x.id===editingProductId)||{};
+      const data={business_id:business.id,product_name:name,sku:sku||null,purchase_cost:cost,reseller_price:resellerPrice,retail_price:retailPrice,stock_quantity:stock,active:old.active??true};
+      const query=editingProductId
+        ?client.from("products").update(data).eq("id",editingProductId).eq("business_id",business.id)
+        :client.from("products").insert(data);
+      const {error}=await query;
+      if(error)throw error;
+      closeProductModal();
+      await loadWorkspace();
+      alert(editingProductId?"Product updated successfully.":"Product added successfully.");
+    }catch(err){
+      message.className="modal-message error";
+      message.textContent=err.message||"Could not save product.";
+      btn.disabled=false;btn.textContent=editingProductId?"Save Changes":"Save Product";
+    }
+  });
+
+  function openAddResellerModal(){
+    $("addResellerForm").reset();
+    $("addResellerMessage").textContent="";
+    $("addResellerMessage").className="modal-message";
+    $("sendResellerInviteBtn").disabled=false;
+    $("sendResellerInviteBtn").textContent="Send Invitation";
+    $("addResellerModal").classList.remove("hidden");
+    $("newResellerName").focus();
+  }
+  function closeAddResellerModal(){
+    $("addResellerModal").classList.add("hidden");
+    $("addResellerForm").reset();
+  }
+  $("cancelAddReseller").addEventListener("click",closeAddResellerModal);
+  $("addResellerModal").addEventListener("click",e=>{
+    if(e.target===$("addResellerModal"))closeAddResellerModal();
+  });
+  $("addResellerForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const name=$("newResellerName").value.trim();
+    const phone=$("newResellerPhone").value.trim();
+    const email=$("newResellerEmail").value.trim();
+    const message=$("addResellerMessage");
+    const btn=$("sendResellerInviteBtn");
+    if(!name||!email){
+      message.className="modal-message error";
+      message.textContent="Please enter the reseller name and email address.";
+      return;
+    }
+    btn.disabled=true;btn.textContent="Creating invitation…";
+    message.className="modal-message";message.textContent="";
+    try{
+      const {data:{session}}=await client.auth.getSession();
+      if(!session)throw new Error("Please sign in again.");
+      const response=await fetch(`${SUPABASE_URL}/functions/v1/invite-reseller`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY,"Authorization":`Bearer ${session.access_token}`},
+        body:JSON.stringify({email,reseller_name:name,phone,business_id:business.id})
+      });
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||"Invitation could not be created.");
+      const link=result.invite_url;
+      closeAddResellerModal();
+      try{
+        await navigator.clipboard.writeText(link);
+        alert("Invitation created and copied! Send this link to the reseller:\n\n"+link);
+      }catch{
+        prompt("Copy this invitation link and send it to the reseller:",link);
+      }
+      await loadWorkspace();
+    }catch(err){
+      message.className="modal-message error";
+      message.textContent=err.message||"Could not create invitation.";
+      btn.disabled=false;btn.textContent="Send Invitation";
+    }
+  });
+
   document.addEventListener("click",e=>{const b=e.target.closest("[data-action]");if(b)performAction(b.dataset.action,b.dataset.id);});
 
 
