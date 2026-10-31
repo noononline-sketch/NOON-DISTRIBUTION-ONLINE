@@ -236,7 +236,7 @@
         <section id="distributions" class="section"><div class="section-title"><h1>Distributions</h1><p>Stock issued to resellers. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-distribution">+ Record Distribution</button></div><div class="panel"><div class="table-wrap" id="distributionsTable"><div class="empty">Loading distributions…</div></div></div></section>
         <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
-        <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Sales, profit and payment summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Total Sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat" id="ownerProfitCard"><div class="k">Owner Gross Profit</div><div class="v" id="reportOwnerProfit">SAR 0.00</div><div class="hint">Reseller price − product purchase cost</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="reportResellerProfit">SAR 0.00</div><div class="hint">Retail price − reseller price</div></div><div class="stat"><div class="k">Total Deposits</div><div class="v" id="reportDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="reportOutstanding">SAR 0.00</div><div class="hint">Sales − recorded deposits</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div><p class="muted" id="reportProfitNote" style="margin-top:12px">Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.</p><div class="section-title" style="margin-top:26px"><h2>Reseller Statement</h2><p>Sales, deposits, outstanding balance and profit for each reseller.</p></div><div class="section-actions" style="align-items:center"><label for="statementReseller" class="muted">Select reseller</label><select class="field" id="statementReseller" style="max-width:280px"></select></div><div class="grid" style="margin-top:12px"><div class="stat"><div class="k">Reseller Sales</div><div class="v" id="statementSales">SAR 0.00</div></div><div class="stat"><div class="k">Deposits Received</div><div class="v" id="statementDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="statementOutstanding">SAR 0.00</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="statementProfit">SAR 0.00</div></div></div><div class="panel" style="margin-top:14px"><div class="panel-head"><h3 id="statementTitle">Reseller transactions</h3></div><div class="table-wrap" id="statementTable"><div class="empty">Select a reseller to view the statement.</div></div></div></section>
+        <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Sales, profit and payment summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Total Sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat" id="ownerProfitCard"><div class="k">Owner Gross Profit</div><div class="v" id="reportOwnerProfit">SAR 0.00</div><div class="hint">Reseller price − product purchase cost</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="reportResellerProfit">SAR 0.00</div><div class="hint">Retail price − reseller price</div></div><div class="stat"><div class="k">Total Deposits</div><div class="v" id="reportDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="reportOutstanding">SAR 0.00</div><div class="hint">Sales − recorded deposits</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div><p class="muted" id="reportProfitNote" style="margin-top:12px">Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.</p><div class="section-title" style="margin-top:26px"><h2>Reseller Statement</h2><p>Sales, deposits, outstanding balance and profit for each reseller.</p></div><div class="section-actions" style="align-items:center"><label for="statementReseller" class="muted">Select reseller</label><select class="field" id="statementReseller" style="max-width:280px"></select><button class="action-btn" id="printStatementBtn" type="button">🖨️ Print Statement</button></div><div class="grid" style="margin-top:12px"><div class="stat"><div class="k">Reseller Sales</div><div class="v" id="statementSales">SAR 0.00</div></div><div class="stat"><div class="k">Deposits Received</div><div class="v" id="statementDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="statementOutstanding">SAR 0.00</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="statementProfit">SAR 0.00</div></div></div><div class="panel" style="margin-top:14px"><div class="panel-head"><h3 id="statementTitle">Reseller transactions</h3></div><div class="table-wrap" id="statementTable"><div class="empty">Select a reseller to view the statement.</div></div></div></section>
       </div>
     </main>
   </section>
@@ -347,6 +347,51 @@
     $("statementTable").innerHTML=table(["Date","Products / Qty","Payment","Sale total","Reseller profit"],rows,"No sales recorded for this reseller yet.");
   }
   $("statementReseller")?.addEventListener("change",renderResellerStatement);
+
+  function escapePrintText(value){
+    return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  $("printStatementBtn")?.addEventListener("click",()=>{
+    const select=$("statementReseller");
+    const chosen=(profile.role==="owner"?cache.resellers:[resellerAccount].filter(Boolean))
+      .find(r=>r.id===select.value);
+    if(!chosen){alert("No reseller statement is available to print.");return;}
+    const printWindow=window.open("","_blank","width=1000,height=750");
+    if(!printWindow){alert("Please allow pop-ups for this website, then try Print Statement again.");return;}
+    const businessName=escapePrintText(business?.business_name||"NOON DISTRIBUTION");
+    const resellerName=escapePrintText(chosen.reseller_name||"Reseller");
+    const dateText=new Date().toLocaleString();
+    const tableHtml=$("statementTable").innerHTML;
+    const metrics=[
+      ["Reseller Sales",$("statementSales").textContent],
+      ["Deposits Received",$("statementDeposits").textContent],
+      ["Outstanding Balance",$("statementOutstanding").textContent],
+      ["Reseller Profit",$("statementProfit").textContent]
+    ];
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${businessName} - ${resellerName} Statement</title>
+      <style>
+        *{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#17233b;margin:32px}
+        h1{font-size:24px;margin:0 0 5px}h2{font-size:18px;margin:26px 0 12px}
+        .muted{color:#667085;font-size:12px}.head{border-bottom:2px solid #1456d8;padding-bottom:16px}
+        .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0}
+        .metric{border:1px solid #dce3ee;border-radius:8px;padding:12px}
+        .metric span{display:block;color:#667085;font-size:11px;margin-bottom:7px}
+        .metric strong{font-size:16px}table{width:100%;border-collapse:collapse;margin-top:12px}
+        th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #dce3ee;font-size:12px}
+        th{background:#f2f5fa;text-transform:uppercase;font-size:10px}
+        .footer{margin-top:28px;border-top:1px solid #dce3ee;padding-top:10px;color:#667085;font-size:11px}
+        @media print{body{margin:15mm}.metrics{break-inside:avoid}}
+      </style></head><body>
+      <div class="head"><h1>${businessName}</h1><div class="muted">Reseller Statement · ${resellerName}</div><div class="muted">Printed: ${escapePrintText(dateText)}</div></div>
+      <div class="metrics">${metrics.map(([label,value])=>`<div class="metric"><span>${escapePrintText(label)}</span><strong>${escapePrintText(value)}</strong></div>`).join("")}</div>
+      <h2>${resellerName} — Transaction History</h2>${tableHtml}
+      <div class="footer">Generated by NOON DISTRIBUTION ONLINE</div>
+      <script>window.onload=()=>{window.focus();window.print();};<\/script>
+      </body></html>`);
+    printWindow.document.close();
+  });
+
 
   function render(){
     const salesTotal=cache.sales.reduce((a,x)=>a+Number(x.total_amount||0),0);
