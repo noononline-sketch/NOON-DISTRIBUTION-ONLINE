@@ -172,6 +172,29 @@
     </form>
   </div>
 
+
+  <div id="saleModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="saleModalTitle">
+    <form id="saleForm" class="modal-card">
+      <h2 id="saleModalTitle">Record New Sale</h2>
+      <p class="modal-sub">Choose a product from your reseller stock and record the sale.</p>
+      <label for="saleProduct">Product</label>
+      <select class="field" id="saleProduct" required></select>
+      <label for="saleQuantity">Quantity</label>
+      <input class="field" id="saleQuantity" type="number" min="1" step="1" value="1" required>
+      <div class="panel" style="margin-top:16px;padding:14px;background:#f5f8fd;box-shadow:none">
+        <div class="muted">Available reseller stock</div><strong id="saleAvailable">—</strong>
+        <div class="muted" style="margin-top:10px">Selling price per unit</div><strong id="saleUnitPrice">—</strong>
+        <div class="muted" style="margin-top:10px">Total sale</div><strong id="saleTotal">SAR 0.00</strong>
+      </div>
+      <label for="salePaymentMethod">Payment method</label>
+      <select class="field" id="salePaymentMethod" required>
+        <option value="cash">Cash</option><option value="card">Card</option><option value="transfer">Transfer</option>
+      </select>
+      <div id="saleFormMessage" class="modal-message" aria-live="polite"></div>
+      <div class="modal-actions"><button class="secondary-btn" id="cancelSale" type="button">Cancel</button><button class="primary" id="saveSaleBtn" type="submit">Save Sale</button></div>
+    </form>
+  </div>
+
   <section id="appView" class="app hidden">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><span>NOON DISTRIBUTION</span></div>
@@ -211,7 +234,7 @@
         <section id="products" class="section"><div class="section-title"><h1>Products</h1><p>Products and owner-controlled reseller prices.</p></div><div class="section-actions"><button class="action-btn" data-action="add-product">+ Add Product</button></div><div class="panel"><div class="table-wrap" id="productsTable"><div class="empty">Loading products…</div></div></div></section>
         <section id="resellers" class="section"><div class="section-title"><h1>Resellers</h1><p>Reseller accounts linked to this business.</p></div><div class="section-actions"><button class="action-btn" data-action="add-reseller">+ Add Reseller</button></div><div class="panel"><div class="table-wrap" id="resellersTable"><div class="empty">Loading resellers…</div></div></div></section>
         <section id="distributions" class="section"><div class="section-title"><h1>Distributions</h1><p>Stock issued to resellers. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-distribution">+ Record Distribution</button></div><div class="panel"><div class="table-wrap" id="distributionsTable"><div class="empty">Loading distributions…</div></div></div></section>
-        <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
+        <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
         <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Business summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Recorded sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div></section>
       </div>
@@ -296,6 +319,7 @@
     const saleRows=cache.sales.slice(0,8).map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`);
     $("recentSales").innerHTML=table(["Date","Payment","Total"],saleRows,"No sales have been recorded yet.");
     document.querySelectorAll('[data-action="add-product"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
+    $("recordSaleButton").classList.toggle("hidden",profile.role!=="reseller");
     const productRows=cache.products.map(x=>`<tr>${cell(x.product_name)}${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
     $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],productRows,"No products added yet.");
     $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
@@ -331,7 +355,11 @@
       }else if(action==="add-distribution"){
         openDistributionModal();
         return;
-      }else if(action==="add-deposit"||action==="add-sale"){
+      }else if(action==="add-sale"){
+        if(profile.role!=="reseller"){alert("Only reseller accounts can record their own product sales.");return;}
+        openSaleModal();
+        return;
+      }else if(action==="add-deposit"){
         let resellerId=resellerAccount?.id;
         const options=cache.resellers;
         if(profile.role==="owner"){
@@ -339,19 +367,65 @@
           const selected=ask("Choose reseller number:\n"+options.map((r,i)=>`${i+1}. ${r.reseller_name}`).join("\n"),"1");
           if(selected===null)return;const r=options[Number(selected)-1];if(!r){alert("Invalid reseller.");return;}resellerId=r.id;
         }
-        if(action==="add-sale"){
-          const amount=getAmount("Sale total amount (SAR):","0");if(amount===null||amount<=0)return;
-          const method=ask("Payment method (cash / card / transfer):","cash");if(method===null)return;
-          const {error}=await client.from("sales").insert({business_id:bid,reseller_id:resellerId,total_amount:amount,payment_method:method||null});if(error)throw error;
-        }else{
-          const amount=getAmount("Deposit amount (SAR):","0");if(amount===null||amount<=0)return;
-          const desc=ask("Description (optional):","Cash deposit");if(desc===null)return;
-          const {error}=await client.from("wallet_transactions").insert({business_id:bid,reseller_id:resellerId,transaction_type:"deposit",amount,direction:"credit",description:desc||null});if(error)throw error;
-        }
+        const amount=getAmount("Deposit amount (SAR):","0");if(amount===null||amount<=0)return;
+        const desc=ask("Description (optional):","Cash deposit");if(desc===null)return;
+        const {error}=await client.from("wallet_transactions").insert({business_id:bid,reseller_id:resellerId,transaction_type:"deposit",amount,direction:"credit",description:desc||null});if(error)throw error;
       }
       await loadWorkspace();alert("Saved successfully.");
     }catch(err){alert("Could not save: "+(err.message||String(err)));}
   }
+
+  function openSaleModal(){
+    const select=$("saleProduct");
+    const availableProducts=cache.products.filter(p=>Number(p.stock_quantity||0)>0 && p.active!==false);
+    select.innerHTML=availableProducts.map(p=>`<option value="${p.id}">${safe(p.product_name)} — Stock: ${Number(p.stock_quantity)} — ${money(p.retail_price)}</option>`).join("");
+    $("saleForm").reset();
+    $("saleQuantity").value="1";
+    $("saleFormMessage").textContent="";
+    $("saleFormMessage").className="modal-message";
+    $("saveSaleBtn").disabled=false;
+    $("saveSaleBtn").textContent="Save Sale";
+    $("saleModal").classList.remove("hidden");
+    updateSalePreview();
+  }
+  function closeSaleModal(){ $("saleModal").classList.add("hidden"); $("saleForm").reset(); }
+  function updateSalePreview(){
+    const product=cache.products.find(p=>p.id===$("saleProduct").value);
+    const qty=Number($("saleQuantity").value||0);
+    const price=Number(product?.retail_price||0);
+    $("saleAvailable").textContent=product?String(product.stock_quantity):"No stock available";
+    $("saleUnitPrice").textContent=product?money(price):"—";
+    $("saleTotal").textContent=money(product&&qty>0?qty*price:0);
+    $("saleQuantity").max=product?String(product.stock_quantity):"1";
+  }
+  $("saleProduct").addEventListener("change",updateSalePreview);
+  $("saleQuantity").addEventListener("input",updateSalePreview);
+  $("cancelSale").addEventListener("click",closeSaleModal);
+  $("saleModal").addEventListener("click",e=>{if(e.target===$("saleModal"))closeSaleModal();});
+  $("saleForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const product=cache.products.find(p=>p.id===$("saleProduct").value);
+    const quantity=Number($("saleQuantity").value);
+    const message=$("saleFormMessage"),btn=$("saveSaleBtn");
+    if(profile?.role!=="reseller" || !resellerAccount){message.className="modal-message error";message.textContent="Only a linked reseller account can record sales.";return;}
+    if(!product || !Number.isInteger(quantity) || quantity<1){message.className="modal-message error";message.textContent="Choose a product and enter a valid quantity.";return;}
+    if(quantity>Number(product.stock_quantity||0)){message.className="modal-message error";message.textContent="Not enough stock. Available: "+product.stock_quantity;return;}
+    btn.disabled=true;btn.textContent="Saving…";message.className="modal-message";message.textContent="";
+    try{
+      const {data,error}=await client.rpc("record_reseller_sale",{
+        p_items:[{product_id:product.id,quantity}],
+        p_payment_method:$("salePaymentMethod").value
+      });
+      if(error)throw error;
+      closeSaleModal();
+      await loadWorkspace();
+      alert("Sale saved successfully. Reseller stock updated. Total: "+money(data?.total_amount));
+    }catch(err){
+      message.className="modal-message error";
+      message.textContent=err.message||"Could not save sale.";
+      btn.disabled=false;btn.textContent="Save Sale";
+    }
+  });
 
   function openDistributionModal(){
     const resellerSelect=$("distributionReseller"),productSelect=$("distributionProduct");
