@@ -22,7 +22,7 @@
     .app{min-height:100vh;display:grid;grid-template-columns:255px 1fr}.sidebar{background:#fff;border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:24px}.sidebar .brand{padding:0 10px;color:var(--ink);font-size:14px}.sidebar .brand-mark{background:var(--pale)}
     .nav-label{padding:0 12px;color:#9aa6b9;font-size:10px;font-weight:800;letter-spacing:1.3px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#60708b;text-align:left;padding:11px 13px;border-radius:10px;font-weight:650}.nav button.active,.nav button:hover{background:var(--pale);color:var(--blue)}
     .sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:16px 10px 0}.user-mini{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.logout{width:100%;margin-top:12px;border:1px solid var(--line);background:#fff;padding:10px;border-radius:9px;color:#52617a;font-weight:700}
-    .main{min-width:0}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;gap:15px}.top-title{font-weight:800;font-size:18px}.top-right{display:flex;align-items:center;gap:12px}.pill{background:#eaf8f1;color:#16804e;border-radius:30px;padding:6px 11px;font-size:11px;font-weight:800}
+    .main{min-width:0}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;gap:15px}.top-title{font-weight:800;font-size:18px}.top-right{display:flex;align-items:center;gap:12px}.top-logout{border:0;border-radius:9px;background:var(--blue);color:#fff;padding:9px 13px;font-weight:750}.top-logout:hover{background:var(--blue2)}.sidebar-bottom .logout{display:none}.pill{background:#eaf8f1;color:#16804e;border-radius:30px;padding:6px 11px;font-size:11px;font-weight:800}
     .content{padding:30px;max-width:1400px;margin:auto}.welcome{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:24px}.welcome h1{font-size:27px;margin:0 0 4px}.welcome p{margin:0;color:var(--muted)}
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.stat,.panel{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}.stat{padding:19px}.stat .k{color:var(--muted);font-size:12px;font-weight:700}.stat .v{font-size:27px;font-weight:850;margin-top:9px;letter-spacing:-.5px}.stat .hint{font-size:11px;color:#94a0b2;margin-top:3px}
     .two{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-top:18px}.panel{padding:20px;min-width:0}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.panel h3{margin:0;font-size:16px}.muted{color:var(--muted);font-size:12px}
@@ -231,6 +231,7 @@
           <button data-section="sales">▤ &nbsp; Sales</button>
           <button data-section="wallet">◉ &nbsp; Deposits & Balance</button>
           <button data-section="reports">▥ &nbsp; Reports</button>
+          <button data-section="settings">⚙ &nbsp; Settings</button>
         </nav>
       </div>
       <div class="sidebar-bottom">
@@ -239,7 +240,7 @@
       </div>
     </aside>
     <main class="main">
-      <header class="topbar"><div class="top-title" id="businessTitle">NOON DISTRIBUTION</div><div class="top-right"><span class="pill" id="rolePill">OWNER</span><span class="badge">SAR · Saudi Riyal</span></div></header>
+      <header class="topbar"><div class="top-title" id="businessTitle">NOON DISTRIBUTION</div><div class="top-right"><span class="pill" id="rolePill">OWNER / ADMIN</span><span class="badge">SAR · Saudi Riyal</span><button class="top-logout" id="topLogoutBtn" type="button">Sign out</button></div></header>
       <div class="content">
         <div class="welcome"><div><h1 id="welcomeTitle">Dashboard</h1><p id="welcomeSub">Here is your business overview.</p></div></div>
         <section id="dashboard" class="section active">
@@ -260,6 +261,22 @@
         <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
         <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Sales, profit and payment summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Total Sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat" id="ownerProfitCard"><div class="k">Owner Gross Profit</div><div class="v" id="reportOwnerProfit">SAR 0.00</div><div class="hint">Reseller price − product purchase cost</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="reportResellerProfit">SAR 0.00</div><div class="hint">Retail price − reseller price</div></div><div class="stat"><div class="k">Total Deposits</div><div class="v" id="reportDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="reportOutstanding">SAR 0.00</div><div class="hint">Sales − recorded deposits</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div><p class="muted" id="reportProfitNote" style="margin-top:12px">Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.</p><div class="section-title" style="margin-top:26px"><h2>Reseller Statement</h2><p>Sales, deposits, outstanding balance and profit for each reseller.</p></div><div class="section-actions" style="align-items:center"><label for="statementReseller" class="muted">Select reseller</label><select class="field" id="statementReseller" style="max-width:280px"></select><button class="action-btn" id="printStatementBtn" type="button">🖨️ Print Statement</button></div><div class="grid" style="margin-top:12px"><div class="stat"><div class="k">Reseller Sales</div><div class="v" id="statementSales">SAR 0.00</div></div><div class="stat"><div class="k">Deposits Received</div><div class="v" id="statementDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="statementOutstanding">SAR 0.00</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="statementProfit">SAR 0.00</div></div></div><div class="panel" style="margin-top:14px"><div class="panel-head"><h3 id="statementTitle">Reseller transactions</h3></div><div class="table-wrap" id="statementTable"><div class="empty">Select a reseller to view the statement.</div></div></div></section>
+        <section id="settings" class="section">
+          <div class="section-title"><h1>Account Settings</h1><p>Manage your name, phone number and email address.</p></div>
+          <div class="panel" style="max-width:650px">
+            <form id="accountSettingsForm">
+              <label for="settingsFullName">Full name</label>
+              <input class="field" id="settingsFullName" type="text" autocomplete="name" required>
+              <label for="settingsPhone">Phone number</label>
+              <input class="field" id="settingsPhone" type="tel" autocomplete="tel" placeholder="+966 5X XXX XXXX">
+              <label for="settingsEmail">Email address</label>
+              <input class="field" id="settingsEmail" type="email" autocomplete="email" required>
+              <p class="muted" style="margin-top:8px">Changing your email may require confirmation from your new email address.</p>
+              <div id="settingsMessage" class="modal-message" aria-live="polite"></div>
+              <div class="modal-actions"><button class="primary" id="saveSettingsBtn" type="submit">Save Changes</button></div>
+            </form>
+          </div>
+        </section>
       </div>
     </main>
   </section>
@@ -288,7 +305,7 @@
   function showApp(){ $("authView").classList.add("hidden"); $("appView").classList.remove("hidden"); $("userEmail").textContent=currentUser.email||""; }
   function showAuth(){ $("appView").classList.add("hidden"); $("authView").classList.remove("hidden"); }
   function activateSection(name){
-    const resellerAllowed=["dashboard","products","sales","wallet"];
+    const resellerAllowed=["dashboard","products","sales","wallet","settings"];
     if(profile?.role==="reseller"&&!resellerAllowed.includes(name))name="dashboard";
     document.querySelectorAll(".section").forEach(s=>s.classList.toggle("active",s.id===name));
     document.querySelectorAll("#navigation button").forEach(b=>b.classList.toggle("active",b.dataset.section===name));
@@ -314,6 +331,9 @@
     if(!business)throw new Error("No business is linked to this account yet.");
     $("businessTitle").textContent=business.business_name;
     $("rolePill").textContent=owner?"OWNER / ADMIN":"RESELLER";
+    $("settingsFullName").value=profile.full_name||resellerAccount?.reseller_name||"";
+    $("settingsPhone").value=profile.phone||resellerAccount?.phone||"";
+    $("settingsEmail").value=currentUser.email||"";
     $("resellersNav").classList.toggle("hidden",!owner);
     // Owner sees every management page. Resellers only see Dashboard, Products, Sales and Deposits & Balance.
     ["distributions","reports"].forEach(name=>{
@@ -948,7 +968,53 @@
     showMessage("Your password has been updated. You can now sign in with your new password.","success");
     btn.disabled=false;btn.textContent="Save new password";
   });
-  $("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();currentUser=null;profile=null;business=null;showAuth();showAuthForm("loginForm");});
+  async function signOutUser(){
+    await client.auth.signOut();
+    currentUser=null;profile=null;business=null;resellerAccount=null;
+    showAuth();showAuthForm("loginForm");
+  }
+  $("logoutBtn").addEventListener("click",signOutUser);
+  $("topLogoutBtn").addEventListener("click",signOutUser);
+
+  $("accountSettingsForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fullName=$("settingsFullName").value.trim();
+    const phone=$("settingsPhone").value.trim();
+    const email=$("settingsEmail").value.trim();
+    const message=$("settingsMessage"),btn=$("saveSettingsBtn");
+    if(!fullName||!email){
+      message.className="modal-message error";
+      message.textContent="Please enter your full name and email address.";
+      return;
+    }
+    btn.disabled=true;btn.textContent="Saving…";
+    message.className="modal-message";message.textContent="";
+    try{
+      const {error:profileError}=await client.from("profiles").update({full_name:fullName,phone:phone||null}).eq("id",currentUser.id);
+      if(profileError)throw profileError;
+      if(profile.role==="reseller"&&resellerAccount){
+        const {error:resellerError}=await client.from("reseller_accounts")
+          .update({reseller_name:fullName,phone:phone||null})
+          .eq("id",resellerAccount.id).eq("user_id",currentUser.id);
+        if(resellerError)throw resellerError;
+      }
+      if(email.toLowerCase()!==String(currentUser.email||"").toLowerCase()){
+        const {error:emailError}=await client.auth.updateUser({email});
+        if(emailError)throw emailError;
+        message.className="modal-message success";
+        message.textContent="Profile saved. Check your new email address to confirm the email change.";
+      }else{
+        message.className="modal-message success";
+        message.textContent="Your account details have been saved successfully.";
+      }
+      await loadWorkspace();
+    }catch(err){
+      message.className="modal-message error";
+      message.textContent=err.message||"Could not save account settings.";
+    }finally{
+      btn.disabled=false;btn.textContent="Save Changes";
+    }
+  });
   client.auth.onAuthStateChange((event,session)=>{
     if(event==="PASSWORD_RECOVERY" && session){
       currentUser=session.user;
