@@ -309,6 +309,8 @@
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
   let currentUser = null, profile = null, business = null, resellerAccount = null;
   let cache = {products:[],resellers:[],sales:[],wallet:[],distributions:[],saleItems:[]};
+  // Define the DOM helper before the date-history controls use it.
+  const $ = id => document.getElementById(id);
   let historyMode="today";
   let historySelectedDate=localDateKey(new Date());
   function localDateKey(value){
@@ -365,7 +367,6 @@
     updateDateCaption();render();
   });
   updateDateCaption();
-  const $ = id => document.getElementById(id);
   const money = n => new Intl.NumberFormat("en-SA",{style:"currency",currency:"SAR"}).format(Number(n||0));
   const safe = v => String(v ?? "");
   function cell(v){return `<td>${safe(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</td>`}
