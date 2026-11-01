@@ -1006,13 +1006,13 @@
   const invitationParams = new URLSearchParams(window.location.search);
   const invitationToken = invitationParams.get("invite");
   const invitationEmail = invitationParams.get("email");
-  const isPublicResellerRegistration = invitationParams.get("register")==="reseller";
-  const publicRegistrationBusinessId = invitationParams.get("business_id");
-  if(isPublicResellerRegistration){
+  // Public reseller links contain a random token; never trust a business_id from the browser URL.
+  const publicResellerToken = invitationParams.get("public_reseller");
+  if(publicResellerToken){
     showAuthForm("publicResellerRegisterForm");
-    if(!publicRegistrationBusinessId){
+    if(!/^[a-f0-9]{64}$/i.test(publicResellerToken)){
       $("publicResellerRegisterMessage").className="error";
-      $("publicResellerRegisterMessage").textContent="This registration link is incomplete. Ask the business owner for a new link.";
+      $("publicResellerRegisterMessage").textContent="This registration link is invalid. Ask the business owner for a new link.";
       $("publicResellerRegisterBtn").disabled=true;
     }
   }else if(invitationToken || invitationEmail){
@@ -1042,14 +1042,14 @@
     const btn=$("publicResellerRegisterBtn");
     if(password.length<8){message.className="error";message.textContent="Password must be at least 8 characters.";return;}
     if(password!==confirmPassword){message.className="error";message.textContent="Passwords do not match.";return;}
-    if(!publicRegistrationBusinessId){message.className="error";message.textContent="Registration link is missing its business reference.";return;}
+    if(!publicResellerToken){message.className="error";message.textContent="Registration link is missing its secure token.";return;}
     btn.disabled=true;btn.textContent="Creating account…";
     message.className="";message.textContent="";
     try{
       const response=await fetch(`${SUPABASE_URL}/functions/v1/public-reseller-register`,{
         method:"POST",
         headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
-        body:JSON.stringify({business_id:publicRegistrationBusinessId,full_name:fullName,phone,email,password})
+        body:JSON.stringify({token:publicResellerToken,full_name:fullName,phone,email,password})
       });
       const result=await response.json();
       if(!response.ok)throw new Error(result.error||"Registration failed.");
@@ -1064,13 +1064,39 @@
   });
 
   $("copyPublicResellerLinkBtn")?.addEventListener("click",async()=>{
-    if(profile?.role!=="owner"||!business?.id)return;
-    const link=`${window.location.origin}${window.location.pathname}?register=reseller&business_id=${encodeURIComponent(business.id)}`;
+    const btn=$("copyPublicResellerLinkBtn");
+    if(profile?.role!=="owner"||!business?.id){
+      alert("Only the business owner can create a public reseller registration link.");
+      return;
+    }
+    const originalText=btn.textContent;
+    btn.disabled=true;btn.textContent="Generating link…";
     try{
-      await navigator.clipboard.writeText(link);
-      alert("Public reseller registration link copied. You can share it on WhatsApp:\n\n"+link);
-    }catch{
-      prompt("Copy this public reseller registration link and share it:",link);
+      const {data:{session}}=await client.auth.getSession();
+      if(!session)throw new Error("Please sign in again.");
+      const response=await fetch(`${SUPABASE_URL}/functions/v1/create-public-reseller-link`,{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "apikey":SUPABASE_PUBLISHABLE_KEY,
+          "Authorization":`Bearer ${session.access_token}`
+        },
+        body:JSON.stringify({})
+      });
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||"Could not create registration link.");
+      const link=result.registration_url;
+      if(!link)throw new Error("The server did not return a registration link.");
+      try{
+        await navigator.clipboard.writeText(link);
+        alert("Public reseller registration link created and copied. Share it on WhatsApp:\n\n"+link);
+      }catch{
+        prompt("Copy this public reseller registration link and share it:",link);
+      }
+    }catch(err){
+      alert(err.message||"Could not create public registration link.");
+    }finally{
+      btn.disabled=false;btn.textContent=originalText;
     }
   });
 
