@@ -245,7 +245,7 @@
         <section id="dashboard" class="section active">
           <div class="grid">
             <div class="stat"><div class="k">Products</div><div class="v" id="statProducts">—</div><div class="hint">Active products</div></div>
-            <div class="stat"><div class="k">Resellers</div><div class="v" id="statResellers">—</div><div class="hint">Registered accounts</div></div>
+            <div class="stat"><div class="k" id="statSecondLabel">Resellers</div><div class="v" id="statResellers">—</div><div class="hint" id="statSecondHint">Registered accounts</div></div>
             <div class="stat"><div class="k">Sales</div><div class="v" id="statSales">SAR 0.00</div><div class="hint">Recorded sales total</div></div>
             <div class="stat"><div class="k">Wallet balance</div><div class="v" id="statWallet">SAR 0.00</div><div class="hint">Available reseller balance</div></div>
           </div>
@@ -325,15 +325,21 @@
     $("welcomeSub").textContent=owner?"Here is your business overview.":"Here is your reseller overview.";
     if(!owner)activateSection("dashboard");
     const bid=business.id;
-    const [products,resellers,sales,wallet,distributions]=await Promise.all([
+    // Load management-only data for the owner. Reseller accounts never need
+    // to query other resellers or the business-wide distribution ledger.
+    const [products,sales,wallet,resellers,distributions]=await Promise.all([
       client.from("products").select("*").eq("business_id",bid).order("created_at",{ascending:false}),
-      client.from("reseller_accounts").select("*").eq("business_id",bid).order("created_at",{ascending:false}),
       client.from("sales").select("*").eq("business_id",bid).order("sale_date",{ascending:false}).limit(100),
       client.from("wallet_transactions").select("*").eq("business_id",bid).order("created_at",{ascending:false}).limit(100),
-      client.from("distributions").select("*").eq("business_id",bid).order("created_at",{ascending:false}).limit(100)
+      owner
+        ? client.from("reseller_accounts").select("*").eq("business_id",bid).order("created_at",{ascending:false})
+        : Promise.resolve({data:[],error:null}),
+      owner
+        ? client.from("distributions").select("*").eq("business_id",bid).order("created_at",{ascending:false}).limit(100)
+        : Promise.resolve({data:[],error:null})
     ]);
-    for(const x of [products,resellers,sales,wallet,distributions])if(x.error)throw x.error;
-    cache={products:products.data||[],resellers:owner?(resellers.data||[]):[],sales:sales.data||[],wallet:wallet.data||[],distributions:distributions.data||[],saleItems:[]};
+    for(const x of [products,sales,wallet,resellers,distributions])if(x.error)throw x.error;
+    cache={products:products.data||[],resellers:resellers.data||[],sales:sales.data||[],wallet:wallet.data||[],distributions:distributions.data||[],saleItems:[],saleItemsError:null};
     if(!owner){
       const inventory=await client.from("reseller_inventory").select("product_id, quantity").eq("business_id",bid).eq("reseller_id",resellerAccount.id);
       if(inventory.error)throw inventory.error;
@@ -341,7 +347,6 @@
       cache.products=cache.products.map(product=>({...product,stock_quantity:quantities.get(product.id)||0}));
       cache.sales=cache.sales.filter(x=>x.reseller_id===resellerAccount.id);
       cache.wallet=cache.wallet.filter(x=>x.reseller_id===resellerAccount.id);
-      cache.distributions=cache.distributions.filter(x=>x.reseller_id===resellerAccount.id);
     }
     const saleIds=cache.sales.map(x=>x.id).filter(Boolean);
     if(saleIds.length){
@@ -435,11 +440,19 @@
     const salesTotal=cache.sales.reduce((a,x)=>a+Number(x.total_amount||0),0);
     const walletBalance=cache.wallet.reduce((a,x)=>a+(x.direction==="credit"?Number(x.amount): -Number(x.amount)),0);
     $("statProducts").textContent=cache.products.length;
-    $("statResellers").textContent=profile.role==="owner"?cache.resellers.length:"1";
     $("statSales").textContent=money(salesTotal);
     $("statWallet").textContent=money(walletBalance);
     const productById=new Map(cache.products.map(p=>[p.id,p]));
     const resellerProfit=cache.saleItems.reduce((sum,item)=>sum+(Number(item.unit_selling_price||0)-Number(item.unit_cost||0))*Number(item.quantity||0),0);
+    if(profile.role==="owner"){
+      $("statSecondLabel").textContent="Resellers";
+      $("statResellers").textContent=cache.resellers.length;
+      $("statSecondHint").textContent="Registered accounts";
+    }else{
+      $("statSecondLabel").textContent="Reseller Profit";
+      $("statResellers").textContent=cache.saleItemsError?"Unavailable":money(resellerProfit);
+      $("statSecondHint").textContent="Retail price − reseller price";
+    }
     const ownerGrossProfit=cache.saleItems.reduce((sum,item)=>{
       const product=productById.get(item.product_id);
       return sum+(Number(item.unit_cost||0)-Number(product?.purchase_cost||0))*Number(item.quantity||0);
