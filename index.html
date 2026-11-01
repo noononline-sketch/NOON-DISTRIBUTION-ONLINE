@@ -581,7 +581,7 @@
     const walletBalance=profile.role==="reseller"
       ? Math.max(0,cache.saleItems.filter(i=>cache.sales.some(s=>s.reseller_id===resellerAccount.id&&s.id===i.sale_id&&dateIsAtOrBefore(s.sale_date,historyMode==="all"?"9999-12-31":historySelectedDate))).reduce((sum,i)=>sum+Number(i.unit_cost||0)*Number(i.quantity||0),0)-cache.wallet.filter(w=>w.reseller_id===resellerAccount.id&&w.transaction_type==="deposit"&&w.direction==="credit"&&dateIsAtOrBefore(w.created_at,historyMode==="all"?"9999-12-31":historySelectedDate)).reduce((sum,w)=>sum+Number(w.amount||0),0))
       : view.wallet.filter(x=>x.transaction_type==="deposit"&&x.direction==="credit").reduce((sum,x)=>sum+Number(x.amount||0),0);
-    $("statProducts").textContent=cache.products.length;
+    $("statProducts").textContent=profile.role==="reseller"?cache.products.filter(p=>Number(p.stock_quantity||0)>0&&p.active!==false).length:cache.products.length;
     $("statSales").textContent=money(salesTotal);
     // Owner Purchased = original cost value of stock acquired.
     // Current owner stock + all recorded distributions reconstructs the
