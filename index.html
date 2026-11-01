@@ -276,6 +276,22 @@
               <div class="modal-actions"><button class="primary" id="saveSettingsBtn" type="submit">Save Changes</button></div>
             </form>
           </div>
+          <div id="ownerDataTools" class="panel" style="margin-top:18px;max-width:850px">
+            <h3>Business Data Management</h3>
+            <p class="muted">Back up or download your business records. Delete All Data removes business records only; Owner and Reseller login accounts remain active.</p>
+            <div class="section-actions">
+              <button class="action-btn" id="backupJsonBtn" type="button">⬇ Backup All Data (JSON)</button>
+              <button class="action-btn" id="downloadCsvBtn" type="button">▤ Download Sheets (CSV)</button>
+            </div>
+            <div style="border-top:1px solid var(--line);padding-top:16px;margin-top:12px">
+              <h3 style="color:#b42332">Delete All Business Data</h3>
+              <p class="muted">Deletes products, stock, distributions, sales, sale items and wallet transactions for this business. It does not delete the business, Owner account, Reseller accounts or user login accounts. Download a backup first.</p>
+              <label for="deleteConfirmText">Type DELETE to confirm</label>
+              <input class="field" id="deleteConfirmText" type="text" placeholder="Type DELETE" autocomplete="off">
+              <div id="deleteDataMessage" class="modal-message" aria-live="polite"></div>
+              <div class="modal-actions"><button class="primary" id="deleteAllDataBtn" type="button" style="background:#b42332">Delete All Business Data</button></div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -318,6 +334,7 @@
     if(p.error) throw p.error; profile=p.data;
     if(!profile) throw new Error("Your profile is not ready. Please contact the business owner.");
     const owner=profile.role==="owner";
+    if($("ownerDataTools"))$("ownerDataTools").classList.toggle("hidden",!owner);
     if(owner){
       const b=await client.from("businesses").select("*").eq("owner_id",currentUser.id).limit(1).maybeSingle();
       if(b.error)throw b.error; business=b.data;
@@ -968,6 +985,73 @@
     showMessage("Your password has been updated. You can now sign in with your new password.","success");
     btn.disabled=false;btn.textContent="Save new password";
   });
+  function downloadBlob(filename, content, mimeType){
+    const blob=new Blob([content],{type:mimeType});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  }
+  function csvCell(value){
+    const text=value===null||value===undefined?"":(typeof value==="object"?JSON.stringify(value):String(value));
+    return '"'+text.replace(/"/g,'""')+'"';
+  }
+  async function collectBusinessBackup(){
+    if(profile?.role!=="owner")throw new Error("Only the Owner/Admin can back up all business data.");
+    const bid=business.id;
+    const specs=[
+      ["businesses",()=>client.from("businesses").select("*").eq("id",bid)],
+      ["products",()=>client.from("products").select("*").eq("business_id",bid)],
+      ["reseller_accounts",()=>client.from("reseller_accounts").select("*").eq("business_id",bid)],
+      ["reseller_inventory",()=>client.from("reseller_inventory").select("*").eq("business_id",bid)],
+      ["distributions",()=>client.from("distributions").select("*").eq("business_id",bid)],
+      ["sales",()=>client.from("sales").select("*").eq("business_id",bid)],
+      ["wallet_transactions",()=>client.from("wallet_transactions").select("*").eq("business_id",bid)]
+    ];
+    const backup={format:"NOON_DISTRIBUTION_BACKUP",version:1,created_at:new Date().toISOString(),business_id:bid,tables:{}};
+    for(const [name,query] of specs){const {data,error}=await query();if(error)throw new Error(`Backup ${name}: ${error.message}`);backup.tables[name]=data||[];}
+    const saleIds=(backup.tables.sales||[]).map(x=>x.id).filter(Boolean);
+    if(saleIds.length){const {data,error}=await client.from("sale_items").select("*").in("sale_id",saleIds);if(error)throw new Error(`Backup sale_items: ${error.message}`);backup.tables.sale_items=data||[];}
+    else backup.tables.sale_items=[];
+    return backup;
+  }
+  $("backupJsonBtn")?.addEventListener("click",async()=>{
+    const btn=$("backupJsonBtn");btn.disabled=true;btn.textContent="Preparing backup…";
+    try{const backup=await collectBusinessBackup();downloadBlob(`NOON_Backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(backup,null,2),"application/json");alert("Backup downloaded successfully.");}
+    catch(err){alert("Backup failed: "+(err.message||String(err)));}
+    finally{btn.disabled=false;btn.textContent="⬇ Backup All Data (JSON)";}
+  });
+  $("downloadCsvBtn")?.addEventListener("click",async()=>{
+    const btn=$("downloadCsvBtn");btn.disabled=true;btn.textContent="Preparing sheets…";
+    try{
+      const backup=await collectBusinessBackup();
+      for(const [name,rows] of Object.entries(backup.tables)){
+        if(!rows.length){downloadBlob(`NOON_${name}.csv`,"No records\r\n","text/csv;charset=utf-8");continue;}
+        const headers=[...new Set(rows.flatMap(row=>Object.keys(row)))];
+        const csv=[headers.map(csvCell).join(","),...rows.map(row=>headers.map(key=>csvCell(row[key])).join(","))].join("\r\n");
+        downloadBlob(`NOON_${name}.csv`,"\uFEFF"+csv,"text/csv;charset=utf-8");
+      }
+      alert("CSV sheets downloaded. You can open them in Excel or import them into Google Sheets.");
+    }catch(err){alert("Download failed: "+(err.message||String(err)));}
+    finally{btn.disabled=false;btn.textContent="▤ Download Sheets (CSV)";}
+  });
+  $("deleteAllDataBtn")?.addEventListener("click",async()=>{
+    const message=$("deleteDataMessage"),btn=$("deleteAllDataBtn");
+    if(profile?.role!=="owner"){message.className="modal-message error";message.textContent="Only the Owner/Admin can delete business data.";return;}
+    if($("deleteConfirmText").value.trim()!=="DELETE"){message.className="modal-message error";message.textContent="Type DELETE exactly to confirm.";return;}
+    if(!confirm("FINAL WARNING: This permanently deletes business products, stock, distributions, sales, sale items and wallet transactions. Owner and Reseller accounts will remain. Continue?"))return;
+    btn.disabled=true;btn.textContent="Deleting…";message.className="modal-message";message.textContent="";
+    try{
+      const {data,error}=await client.rpc("delete_business_operational_data");
+      if(error)throw error;
+      $("deleteConfirmText").value="";
+      await loadWorkspace();
+      message.className="modal-message success";
+      message.textContent="Business data cleared. Owner and Reseller accounts remain active.";
+      alert("Business data deleted successfully. All login accounts were preserved.");
+    }catch(err){message.className="modal-message error";message.textContent=err.message||"Delete failed. Check the SQL setup.";}
+    finally{btn.disabled=false;btn.textContent="Delete All Business Data";}
+  });
+
   async function signOutUser(){
     await client.auth.signOut();
     currentUser=null;profile=null;business=null;resellerAccount=null;
