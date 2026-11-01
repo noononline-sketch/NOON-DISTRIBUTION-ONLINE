@@ -251,7 +251,7 @@
             <div class="stat"><div class="k">Products</div><div class="v" id="statProducts">—</div><div class="hint">Active products</div></div>
             <div class="stat"><div class="k" id="statSecondLabel">Resellers</div><div class="v" id="statResellers">—</div><div class="hint" id="statSecondHint">Registered accounts</div></div>
             <div class="stat"><div class="k">Sales</div><div class="v" id="statSales">SAR 0.00</div><div class="hint">Recorded sales total</div></div>
-            <div class="stat" id="ownerPurchasedCard"><div class="k">Purchased</div><div class="v" id="statPurchased">SAR 0.00</div><div class="hint">Total product purchase cost</div></div>
+            <div class="stat" id="ownerPurchasedCard"><div class="k">Owner Purchased</div><div class="v" id="statPurchased">SAR 0.00</div><div class="hint">Total cost of products originally purchased</div></div>
             <div class="stat"><div class="k">Wallet balance</div><div class="v" id="statWallet">SAR 0.00</div><div class="hint">Available reseller balance</div></div>
           </div>
           <div class="two">
@@ -565,11 +565,20 @@
       : view.wallet.filter(x=>x.transaction_type==="deposit"&&x.direction==="credit").reduce((sum,x)=>sum+Number(x.amount||0),0);
     $("statProducts").textContent=cache.products.length;
     $("statSales").textContent=money(salesTotal);
-    // Estimate original purchased quantity as current owner stock plus all stock
-    // distributed to resellers, then value it at each product's saved purchase cost.
+    // Owner Purchased = original cost value of stock acquired.
+    // Current owner stock + all recorded distributions reconstructs the
+    // original quantity, because distributions reduce the owner's stock.
     const distributedByProduct=new Map();
-    cache.distributions.forEach(d=>distributedByProduct.set(d.product_id,(distributedByProduct.get(d.product_id)||0)+Number(d.quantity||0)));
-    const purchasedTotal=cache.products.reduce((sum,p)=>sum+(Number(p.purchase_cost||0)*(Number(p.stock_quantity||0)+(distributedByProduct.get(p.id)||0))),0);
+    cache.distributions.forEach(d=>{
+      distributedByProduct.set(
+        d.product_id,
+        (distributedByProduct.get(d.product_id)||0)+Number(d.quantity||0)
+      );
+    });
+    const purchasedTotal=cache.products.reduce((sum,p)=>{
+      const originalQuantity=Number(p.stock_quantity||0)+(distributedByProduct.get(p.id)||0);
+      return sum+(Number(p.purchase_cost||0)*originalQuantity);
+    },0);
     $("statPurchased").textContent=money(purchasedTotal);
     $("ownerPurchasedCard").classList.toggle("hidden",profile.role!=="owner");
     $("statWallet").textContent=money(walletBalance);
