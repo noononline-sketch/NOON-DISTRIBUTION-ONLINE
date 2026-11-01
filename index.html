@@ -101,6 +101,24 @@
         <button class="primary full" id="completeInviteBtn" type="submit">Create reseller account</button>
         <div id="inviteRegisterMessage" aria-live="polite"></div>
       </form>
+
+      <form id="publicResellerRegisterForm" class="auth-card hidden">
+        <h2>Create reseller account</h2>
+        <p class="sub">Register directly with NOON DISTRIBUTION. Your account will be linked to this business.</p>
+        <label for="publicResellerName">Full name</label>
+        <input class="field" id="publicResellerName" type="text" autocomplete="name" required>
+        <label for="publicResellerPhone">Phone number</label>
+        <input class="field" id="publicResellerPhone" type="tel" autocomplete="tel" required>
+        <label for="publicResellerEmail">Email address</label>
+        <input class="field" id="publicResellerEmail" type="email" autocomplete="email" required>
+        <label for="publicResellerPassword">Create password</label>
+        <input class="field" id="publicResellerPassword" type="password" autocomplete="new-password" minlength="8" required>
+        <label for="publicResellerPasswordConfirm">Confirm password</label>
+        <input class="field" id="publicResellerPasswordConfirm" type="password" autocomplete="new-password" minlength="8" required>
+        <button class="primary full" id="publicResellerRegisterBtn" type="submit">Create account</button>
+        <button class="text-link" id="publicRegisterBackBtn" type="button">Back to sign in</button>
+        <div id="publicResellerRegisterMessage" aria-live="polite"></div>
+      </form>
     </div>
   </section>
 
@@ -260,7 +278,7 @@
           </div>
         </section>
         <section id="products" class="section"><div class="section-title"><h1>Products</h1><p>Products and owner-controlled reseller prices.</p></div><div class="section-actions"><button class="action-btn" data-action="add-product">+ Add Product</button></div><div class="panel"><div class="table-wrap" id="productsTable"><div class="empty">Loading products…</div></div></div></section>
-        <section id="resellers" class="section"><div class="section-title"><h1>Resellers</h1><p>Reseller accounts linked to this business.</p></div><div class="section-actions"><button class="action-btn" data-action="add-reseller">+ Add Reseller</button></div><div class="panel"><div class="table-wrap" id="resellersTable"><div class="empty">Loading resellers…</div></div></div></section>
+        <section id="resellers" class="section"><div class="section-title"><h1>Resellers</h1><p>Reseller accounts linked to this business.</p></div><div class="section-actions"><button class="action-btn" data-action="add-reseller">+ Add Reseller (Invitation)</button><button class="secondary-btn" id="copyPublicResellerLinkBtn" type="button">Copy Public Registration Link</button></div><p class="muted">Share the public link with anyone. New registrations are linked to this business and start Active.</p><div class="panel"><div class="table-wrap" id="resellersTable"><div class="empty">Loading resellers…</div></div></div></section>
         <section id="distributions" class="section"><div class="section-title"><h1>Distributions</h1><p>Stock issued to resellers. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-distribution">+ Record Distribution</button></div><div class="panel"><div class="table-wrap" id="distributionsTable"><div class="empty">Loading distributions…</div></div></div></section>
         <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history for the selected date.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
@@ -371,7 +389,7 @@
   function table(headers, rows, empty){ if(!rows.length)return `<div class="empty">${empty}</div>`; return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`; }
   function showMessage(msg, type="error"){ $("authMessage").className=type; $("authMessage").textContent=msg; }
   function showAuthForm(formId){
-    ["loginForm","resetRequestForm","resetPasswordForm","resellerRegisterForm"].forEach(id=>$(id).classList.toggle("hidden",id!==formId));
+    ["loginForm","resetRequestForm","resetPasswordForm","resellerRegisterForm","publicResellerRegisterForm"].forEach(id=>$(id).classList.toggle("hidden",id!==formId));
   }
   function showResetPassword(){
     showAuth();
@@ -988,7 +1006,16 @@
   const invitationParams = new URLSearchParams(window.location.search);
   const invitationToken = invitationParams.get("invite");
   const invitationEmail = invitationParams.get("email");
-  if(invitationToken || invitationEmail){
+  const isPublicResellerRegistration = invitationParams.get("register")==="reseller";
+  const publicRegistrationBusinessId = invitationParams.get("business_id");
+  if(isPublicResellerRegistration){
+    showAuthForm("publicResellerRegisterForm");
+    if(!publicRegistrationBusinessId){
+      $("publicResellerRegisterMessage").className="error";
+      $("publicResellerRegisterMessage").textContent="This registration link is incomplete. Ask the business owner for a new link.";
+      $("publicResellerRegisterBtn").disabled=true;
+    }
+  }else if(invitationToken || invitationEmail){
     if(!invitationToken || !invitationEmail){
       showAuthForm("resellerRegisterForm");
       $("inviteRegisterMessage").className="error";
@@ -998,6 +1025,54 @@
       showAuthForm("resellerRegisterForm");
     }
   }
+
+  $("publicRegisterBackBtn").addEventListener("click",()=>{
+    history.replaceState(null,"",window.location.pathname);
+    showAuthForm("loginForm");
+  });
+
+  $("publicResellerRegisterForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fullName=$("publicResellerName").value.trim();
+    const phone=$("publicResellerPhone").value.trim();
+    const email=$("publicResellerEmail").value.trim();
+    const password=$("publicResellerPassword").value;
+    const confirmPassword=$("publicResellerPasswordConfirm").value;
+    const message=$("publicResellerRegisterMessage");
+    const btn=$("publicResellerRegisterBtn");
+    if(password.length<8){message.className="error";message.textContent="Password must be at least 8 characters.";return;}
+    if(password!==confirmPassword){message.className="error";message.textContent="Passwords do not match.";return;}
+    if(!publicRegistrationBusinessId){message.className="error";message.textContent="Registration link is missing its business reference.";return;}
+    btn.disabled=true;btn.textContent="Creating account…";
+    message.className="";message.textContent="";
+    try{
+      const response=await fetch(`${SUPABASE_URL}/functions/v1/public-reseller-register`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY},
+        body:JSON.stringify({business_id:publicRegistrationBusinessId,full_name:fullName,phone,email,password})
+      });
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||"Registration failed.");
+      message.className="success";
+      message.textContent=result.message||"Your reseller account has been created and activated. You can now sign in.";
+      $("publicResellerPassword").value="";$("publicResellerPasswordConfirm").value="";
+    }catch(err){
+      message.className="error";message.textContent=err.message||"Registration failed.";
+    }finally{
+      btn.disabled=false;btn.textContent="Create account";
+    }
+  });
+
+  $("copyPublicResellerLinkBtn")?.addEventListener("click",async()=>{
+    if(profile?.role!=="owner"||!business?.id)return;
+    const link=`${window.location.origin}${window.location.pathname}?register=reseller&business_id=${encodeURIComponent(business.id)}`;
+    try{
+      await navigator.clipboard.writeText(link);
+      alert("Public reseller registration link copied. You can share it on WhatsApp:\n\n"+link);
+    }catch{
+      prompt("Copy this public reseller registration link and share it:",link);
+    }
+  });
 
   $("resellerRegisterForm").addEventListener("submit",async e=>{
     e.preventDefault();
