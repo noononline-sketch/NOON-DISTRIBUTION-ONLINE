@@ -242,10 +242,8 @@
         <div class="welcome"><div><h1 id="welcomeTitle">Dashboard</h1><p id="welcomeSub">Here is your business overview.</p></div></div>
         <div class="date-toolbar" id="dateToolbar" aria-label="History date filter">
           <strong>History date:</strong>
-          <button type="button" data-date-mode="today" class="active">Today</button>
-          <button type="button" data-date-mode="yesterday">Yesterday</button>
+          <input type="date" id="historyDate" aria-label="Choose a date" title="Choose any date">
           <button type="button" data-date-mode="all">All time</button>
-          <input type="date" id="historyDate" aria-label="Choose a date">
           <span class="date-caption" id="historyDateCaption">Showing today's records</span>
         </div>
         <section id="dashboard" class="section active">
@@ -350,7 +348,6 @@
     const captions={today:"Showing today's records",yesterday:"Showing yesterday's records",all:"Showing all saved records",custom:`Showing records for ${historySelectedDate}`};
     $("historyDateCaption").textContent=captions[historyMode]||captions.custom;
     $("historyDate").value=historySelectedDate;
-    $("historyDate").classList.toggle("hidden",historyMode!=="custom");
     document.querySelectorAll("[data-date-mode]").forEach(b=>b.classList.toggle("active",b.dataset.dateMode===historyMode));
   }
   function setHistoryMode(mode){
