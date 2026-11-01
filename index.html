@@ -582,8 +582,11 @@
     $("statPurchased").textContent=money(purchasedTotal);
     $("ownerPurchasedCard").classList.toggle("hidden",profile.role!=="owner");
     $("statWallet").textContent=money(walletBalance);
-    document.querySelector("#dashboard .stat:nth-child(4) .k").textContent=profile.role==="reseller"?"Outstanding balance":"Total Reseller Deposits Received";
-    document.querySelector("#dashboard .stat:nth-child(4) .hint").textContent=profile.role==="reseller"?"Sales − deposits":"Deposits recorded from resellers";
+    // Keep the Owner Purchased card label intact. The fifth card shows
+    // the reseller outstanding balance for resellers and received deposits
+    // for the owner.
+    document.querySelector("#dashboard .stat:nth-child(5) .k").textContent=profile.role==="reseller"?"Outstanding balance":"Total Reseller Deposits Received";
+    document.querySelector("#dashboard .stat:nth-child(5) .hint").textContent=profile.role==="reseller"?"Reseller price − deposits":"Deposits recorded from resellers";
     const productById=new Map(cache.products.map(p=>[p.id,p]));
     const resellerProfit=view.saleItems.reduce((sum,item)=>sum+(Number(item.unit_selling_price||0)-Number(item.unit_cost||0))*Number(item.quantity||0),0);
     if(profile.role==="owner"){
