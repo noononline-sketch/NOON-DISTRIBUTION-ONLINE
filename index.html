@@ -472,10 +472,14 @@
 
   function render(){
     const salesTotal=cache.sales.reduce((a,x)=>a+Number(x.total_amount||0),0);
-    const walletBalance=cache.wallet.reduce((a,x)=>a+(x.direction==="credit"?Number(x.amount): -Number(x.amount)),0);
+    const walletBalance=profile.role==="reseller"
+      ? Math.max(0,salesTotal-cache.wallet.filter(x=>x.transaction_type==="deposit"&&x.direction==="credit").reduce((sum,x)=>sum+Number(x.amount||0),0))
+      : cache.wallet.reduce((a,x)=>a+(x.direction==="credit"?Number(x.amount): -Number(x.amount)),0);
     $("statProducts").textContent=cache.products.length;
     $("statSales").textContent=money(salesTotal);
     $("statWallet").textContent=money(walletBalance);
+    document.querySelector("#dashboard .stat:nth-child(4) .k").textContent=profile.role==="reseller"?"Outstanding balance":"Wallet balance";
+    document.querySelector("#dashboard .stat:nth-child(4) .hint").textContent=profile.role==="reseller"?"Sales − deposits":"Available reseller balance";
     const productById=new Map(cache.products.map(p=>[p.id,p]));
     const resellerProfit=cache.saleItems.reduce((sum,item)=>sum+(Number(item.unit_selling_price||0)-Number(item.unit_cost||0))*Number(item.quantity||0),0);
     if(profile.role==="owner"){
@@ -561,6 +565,28 @@
   }
 
 
+  function getResellerOutstanding(resellerId){
+    const resellerSales=cache.sales
+      .filter(s=>s.reseller_id===resellerId)
+      .reduce((sum,s)=>sum+Number(s.total_amount||0),0);
+    const deposits=cache.wallet
+      .filter(w=>w.reseller_id===resellerId&&w.transaction_type==="deposit"&&w.direction==="credit")
+      .reduce((sum,w)=>sum+Number(w.amount||0),0);
+    return Math.max(0,Number((resellerSales-deposits).toFixed(2)));
+  }
+  function updateDepositAmountFromBalance(){
+    const resellerId=$("depositReseller").value;
+    const balance=getResellerOutstanding(resellerId);
+    $("depositAmount").value=balance>0?balance.toFixed(2):"";
+    $("saveDepositBtn").disabled=balance<=0;
+    if(balance>0){
+      $("depositFormMessage").className="modal-message";
+      $("depositFormMessage").textContent=`Outstanding balance: ${money(balance)}. This amount has been filled automatically.`;
+    }else{
+      $("depositFormMessage").className="modal-message success";
+      $("depositFormMessage").textContent="This reseller has no outstanding balance to deposit.";
+    }
+  }
   function openDepositModal(){
     const select=$("depositReseller");
     select.innerHTML=cache.resellers.filter(r=>r.active).map(r=>
@@ -576,8 +602,11 @@
       $("depositFormMessage").className="modal-message error";
       $("depositFormMessage").textContent="There is no active reseller. Add or activate a reseller first.";
       $("saveDepositBtn").disabled=true;
+    }else{
+      updateDepositAmountFromBalance();
     }
   }
+  $("depositReseller").addEventListener("change",updateDepositAmountFromBalance);
   function closeDepositModal(){
     $("depositModal").classList.add("hidden");
     $("depositForm").reset();
@@ -592,9 +621,15 @@
     const description=$("depositDescription").value.trim();
     const message=$("depositFormMessage"),btn=$("saveDepositBtn");
     if(profile?.role!=="owner"){message.className="modal-message error";message.textContent="Only the owner can record deposits.";return;}
+    const outstanding=getResellerOutstanding(resellerId);
     if(!resellerId||!Number.isFinite(amount)||amount<=0){
       message.className="modal-message error";
       message.textContent="Choose a reseller and enter a deposit amount greater than zero.";
+      return;
+    }
+    if(amount>outstanding+0.001){
+      message.className="modal-message error";
+      message.textContent=`Deposit cannot exceed the outstanding balance of ${money(outstanding)}.`;
       return;
     }
     btn.disabled=true;btn.textContent="Saving…";
