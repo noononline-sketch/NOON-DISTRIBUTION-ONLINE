@@ -22,7 +22,7 @@
     .app{min-height:100vh;display:grid;grid-template-columns:255px 1fr}.sidebar{background:#fff;border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:24px}.sidebar .brand{padding:0 10px;color:var(--ink);font-size:14px}.sidebar .brand-mark{background:var(--pale)}
     .nav-label{padding:0 12px;color:#9aa6b9;font-size:10px;font-weight:800;letter-spacing:1.3px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#60708b;text-align:left;padding:11px 13px;border-radius:10px;font-weight:650}.nav button.active,.nav button:hover{background:var(--pale);color:var(--blue)}
     .sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding:16px 10px 0}.user-mini{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.logout{width:100%;margin-top:12px;border:1px solid var(--line);background:#fff;padding:10px;border-radius:9px;color:#52617a;font-weight:700}
-    .main{min-width:0}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;gap:15px}.top-title{font-weight:800;font-size:18px}.top-right{display:flex;align-items:center;gap:12px}.top-logout{border:0;border-radius:9px;background:var(--blue);color:#fff;padding:9px 13px;font-weight:750}.top-logout:hover{background:var(--blue2)}.sidebar-bottom .logout{display:none}.pill{background:#eaf8f1;color:#16804e;border-radius:30px;padding:6px 11px;font-size:11px;font-weight:800}
+    .main{min-width:0}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;gap:15px}.top-title{font-weight:800;font-size:18px}.top-right{display:flex;align-items:center;gap:12px}.top-logout{border:0;border-radius:9px;background:var(--blue);color:#fff;padding:9px 13px;font-weight:750}.top-logout:hover{background:var(--blue2)}.product-image{width:42px;height:42px;object-fit:cover;border-radius:9px;vertical-align:middle;margin-right:8px}.sale-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:10px;margin:12px 0}.sale-product-card{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;text-align:left;color:var(--ink)}.sale-product-card img{width:100%;height:76px;object-fit:cover;border-radius:8px}.cart-line,.notice-item{padding:10px;border-bottom:1px solid var(--line)}.cart-line{display:flex;justify-content:space-between;gap:8px}.cart-line button{border:0;background:var(--pale);color:var(--blue);padding:5px 9px;border-radius:7px}.sidebar-bottom .logout{display:none}.pill{background:#eaf8f1;color:#16804e;border-radius:30px;padding:6px 11px;font-size:11px;font-weight:800}
     .content{padding:30px;max-width:1400px;margin:auto}.welcome{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:24px}.welcome h1{font-size:27px;margin:0 0 4px}.welcome p{margin:0;color:var(--muted)}
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.stat,.panel{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}.stat{padding:19px}.stat .k{color:var(--muted);font-size:12px;font-weight:700}.stat .v{font-size:27px;font-weight:850;margin-top:9px;letter-spacing:-.5px}.stat .hint{font-size:11px;color:#94a0b2;margin-top:3px}
     .two{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-top:18px}.panel{padding:20px;min-width:0}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.panel h3{margin:0;font-size:16px}.muted{color:var(--muted);font-size:12px}
@@ -63,7 +63,7 @@
         <button class="text-link" id="forgotPasswordBtn" type="button">Forgot password?</button>
         <button class="text-link" id="resendConfirmationBtn" type="button">Resend confirmation email</button>
         <div id="authMessage" aria-live="polite"></div>
-        <p class="notice"></p>
+        <p class="notice">Your account access is managed by the business owner. Contact the owner if you need a reseller account.</p>
       </form>
 
       <form id="resetRequestForm" class="auth-card hidden">
@@ -136,7 +136,7 @@
       <input class="field" id="productResellerPriceInput" type="number" min="0" step="0.01" placeholder="0.00" required>
       <label for="productRetailPriceInput">Retail price (SAR)</label>
       <input class="field" id="productRetailPriceInput" type="number" min="0" step="0.01" placeholder="0.00" required>
-      <label for="productStockInput">Stock quantity</label>
+      <label for="productImageInput">Product image</label><input class="field" id="productImageInput" type="file" accept="image/*"><div class="muted">JPG, PNG or WEBP · max 5 MB</div><div id="productImagePreview" style="margin-top:10px"></div><label for="productStockInput">Stock quantity</label>
       <input class="field" id="productStockInput" type="number" min="0" step="1" placeholder="0" required>
       <div id="productFormMessage" class="modal-message" aria-live="polite"></div>
       <div class="modal-actions">
@@ -177,10 +177,7 @@
     <form id="saleForm" class="modal-card">
       <h2 id="saleModalTitle">Record New Sale</h2>
       <p class="modal-sub">Choose a product from your reseller stock and record the sale.</p>
-      <label for="saleProduct">Product</label>
-      <select class="field" id="saleProduct" required></select>
-      <label for="saleQuantity">Quantity</label>
-      <input class="field" id="saleQuantity" type="number" min="1" step="1" value="1" required>
+      <label>Choose products</label><div id="saleProductCards" class="sale-products"></div><label>Sale cart</label><div id="saleCart"><div class="empty">Choose a product above.</div></div>
       <div class="panel" style="margin-top:16px;padding:14px;background:#f5f8fd;box-shadow:none">
         <div class="muted">Available reseller stock</div><strong id="saleAvailable">—</strong>
         <div class="muted" style="margin-top:10px">Selling price per unit</div><strong id="saleUnitPrice">—</strong>
@@ -231,7 +228,7 @@
           <button data-section="sales">▤ &nbsp; Sales</button>
           <button data-section="wallet">◉ &nbsp; Deposits & Balance</button>
           <button data-section="reports">▥ &nbsp; Reports</button>
-          <button data-section="settings">⚙ &nbsp; Settings</button>
+          <button data-section="notifications" id="notificationsNav">🔔 &nbsp; Notifications</button><button data-section="settings">⚙ &nbsp; Settings</button>
         </nav>
       </div>
       <div class="sidebar-bottom">
@@ -261,7 +258,7 @@
         <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
         <section id="reports" class="section"><div class="section-title"><h1>Reports</h1><p>Sales, profit and payment summary based on saved records.</p></div><div class="grid"><div class="stat"><div class="k">Total Sales</div><div class="v" id="reportSales">SAR 0.00</div></div><div class="stat" id="ownerProfitCard"><div class="k">Owner Gross Profit</div><div class="v" id="reportOwnerProfit">SAR 0.00</div><div class="hint">Reseller price − product purchase cost</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="reportResellerProfit">SAR 0.00</div><div class="hint">Retail price − reseller price</div></div><div class="stat"><div class="k">Total Deposits</div><div class="v" id="reportDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="reportOutstanding">SAR 0.00</div><div class="hint">Sales − recorded deposits</div></div><div class="stat"><div class="k">Products</div><div class="v" id="reportProducts">0</div></div><div class="stat"><div class="k">Resellers</div><div class="v" id="reportResellers">0</div></div><div class="stat"><div class="k">Wallet transactions</div><div class="v" id="reportWallet">0</div></div></div><p class="muted" id="reportProfitNote" style="margin-top:12px">Profit estimates use the product purchase cost currently saved in Products. If a product's purchase cost changes, historical owner profit may also change.</p><div class="section-title" style="margin-top:26px"><h2>Reseller Statement</h2><p>Sales, deposits, outstanding balance and profit for each reseller.</p></div><div class="section-actions" style="align-items:center"><label for="statementReseller" class="muted">Select reseller</label><select class="field" id="statementReseller" style="max-width:280px"></select><button class="action-btn" id="printStatementBtn" type="button">🖨️ Print Statement</button></div><div class="grid" style="margin-top:12px"><div class="stat"><div class="k">Reseller Sales</div><div class="v" id="statementSales">SAR 0.00</div></div><div class="stat"><div class="k">Deposits Received</div><div class="v" id="statementDeposits">SAR 0.00</div></div><div class="stat"><div class="k">Outstanding Balance</div><div class="v" id="statementOutstanding">SAR 0.00</div></div><div class="stat"><div class="k">Reseller Profit</div><div class="v" id="statementProfit">SAR 0.00</div></div></div><div class="panel" style="margin-top:14px"><div class="panel-head"><h3 id="statementTitle">Reseller transactions</h3></div><div class="table-wrap" id="statementTable"><div class="empty">Select a reseller to view the statement.</div></div></div></section>
-        <section id="settings" class="section">
+        <section id="notifications" class="section"><div class="section-title"><h1>Notifications</h1><p>Owner-only business activity and low-stock alerts.</p></div><div class="panel" id="notificationsList"><div class="empty">Loading notifications…</div></div></section><section id="settings" class="section">
           <div class="section-title"><h1>Account Settings</h1><p>Manage your name, phone number and email address.</p></div>
           <div class="panel" style="max-width:650px">
             <form id="accountSettingsForm">
@@ -353,7 +350,7 @@
     $("settingsEmail").value=currentUser.email||"";
     $("resellersNav").classList.toggle("hidden",!owner);
     // Owner sees every management page. Resellers only see Dashboard, Products, Sales and Deposits & Balance.
-    ["distributions","reports"].forEach(name=>{
+    ["distributions","reports","notifications"].forEach(name=>{
       const navButton=document.querySelector(`#navigation button[data-section="${name}"]`);
       const section=$(name);
       if(navButton)navButton.classList.toggle("hidden",!owner);
@@ -511,13 +508,17 @@
     document.querySelectorAll('[data-action="add-product"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
     $("recordSaleButton").classList.toggle("hidden",profile.role!=="reseller");
     document.querySelectorAll('[data-action="add-deposit"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
-    const productRows=cache.products.map(x=>`<tr>${cell(x.product_name)}${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
+    const productRows=cache.products.map(x=>`<tr><td>${x.image_url?`<img class="product-image" src="${safe(x.image_url)}" alt="">`:""}${safe(x.product_name)}</td>${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
     $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],productRows,"No products added yet.");
     $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
     $("distributionsTable").innerHTML=table(["Date","Reseller","Product","Quantity","Total","Status"],cache.distributions.map(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id);const p=cache.products.find(v=>v.id===x.product_id);return `<tr>${cell(x.distribution_date)}${cell(r?.reseller_name||"Your account")}${cell(p?.product_name||"—")}${cell(x.quantity??"—")}${cell(money(x.total_amount))}${cell(x.status)}</tr>`}),"No distributions recorded yet.");
-    $("salesTable").innerHTML=table(["Date","Payment","Total"],cache.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}</tr>`),"No sales recorded yet.");
+    $("salesTable").innerHTML=table(["Date","Payment","Total","Receipt"],cache.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}<td><button class="row-action" data-action="print-receipt" data-id="${x.id}">Print / Receipt</button></td></tr>`),"No sales recorded yet.");renderNotifications();
     $("walletTable").innerHTML=table(["Date","Type","Direction","Amount","Description"],cache.wallet.map(x=>`<tr>${cell(new Date(x.created_at).toLocaleString())}${cell(x.transaction_type)}${cell(x.direction)}${cell(money(x.amount))}${cell(x.description||"—")}</tr>`),"No wallet transactions recorded yet.");
   }
+
+  function renderNotifications(){const host=$("notificationsList");if(!host||profile?.role!=="owner")return;const notes=[];cache.products.filter(p=>Number(p.stock_quantity||0)<=5&&p.active!==false).forEach(p=>notes.push(["Low stock: "+p.product_name,`Only ${p.stock_quantity} unit(s) remain.`]));cache.sales.slice(0,10).forEach(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id);notes.push(["New reseller sale",`${r?.reseller_name||"Reseller"} · ${money(x.total_amount)} · ${x.payment_method||"—"}`]);});cache.distributions.slice(0,10).forEach(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id),p=cache.products.find(v=>v.id===x.product_id);notes.push(["Stock distributed",`${r?.reseller_name||"Reseller"} received ${x.quantity??"—"} × ${p?.product_name||"product"}`]);});host.innerHTML=notes.length?notes.map(n=>`<div class="notice-item"><strong>${safe(n[0])}</strong><div class="muted">${safe(n[1])}</div></div>`).join(""):'<div class="empty">No new notifications.</div>';}
+  function printReceipt(id){const sale=cache.sales.find(x=>x.id===id);if(!sale){alert("Sale details are not available.");return;}const items=cache.saleItems.filter(x=>x.sale_id===id),r=cache.resellers.find(x=>x.id===sale.reseller_id)||resellerAccount;const rows=items.map(i=>{const p=cache.products.find(x=>x.id===i.product_id);return `<tr><td>${safe(p?.product_name||"Product")}</td><td>${i.quantity}</td><td>${money(i.unit_selling_price)}</td><td>${money(Number(i.quantity||0)*Number(i.unit_selling_price||0))}</td></tr>`}).join("");const w=window.open("","_blank","width=760,height=800");if(!w){alert("Allow pop-ups to print receipt.");return;}w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title><style>body{font:14px Arial;margin:28px;color:#17233b}h1{text-align:center}table{width:100%;border-collapse:collapse;margin-top:20px}td,th{padding:9px;border-bottom:1px solid #ddd;text-align:left}.total{text-align:right;font-size:20px;font-weight:bold;margin-top:20px}</style></head><body><h1>${safe(business?.business_name||"NOON DISTRIBUTION")}</h1><h3>SALES RECEIPT</h3><p>Receipt: ${safe(sale.id)}<br>Date: ${new Date(sale.sale_date).toLocaleString()}<br>Reseller: ${safe(r?.reseller_name||"—")}<br>Payment: ${safe(sale.payment_method||"—")}</p><table><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr>${rows||'<tr><td colspan="4">Item details unavailable</td></tr>'}</table><div class="total">Total: ${money(sale.total_amount)}</div><script>window.onload=()=>{window.focus();window.print();};<\/script></body></html>`);w.document.close();}
+  document.addEventListener("click",e=>{const b=e.target.closest('[data-action="print-receipt"]');if(b)printReceipt(b.dataset.id);});
 
   const ask=(label,value="")=>{const v=prompt(label,value??"");return v===null?null:v.trim();};
   const getAmount=(label,value="0")=>{const raw=ask(label,value);if(raw===null)return null;const n=Number(raw);if(!Number.isFinite(n)||n<0){alert("Enter a valid non-negative number.");return null;}return n;};
@@ -616,57 +617,15 @@
     }
   });
 
-  function openSaleModal(){
-    const select=$("saleProduct");
-    const availableProducts=cache.products.filter(p=>Number(p.stock_quantity||0)>0 && p.active!==false);
-    select.innerHTML=availableProducts.map(p=>`<option value="${p.id}">${safe(p.product_name)} — Stock: ${Number(p.stock_quantity)} — ${money(p.retail_price)}</option>`).join("");
-    $("saleForm").reset();
-    $("saleQuantity").value="1";
-    $("saleFormMessage").textContent="";
-    $("saleFormMessage").className="modal-message";
-    $("saveSaleBtn").disabled=false;
-    $("saveSaleBtn").textContent="Save Sale";
-    $("saleModal").classList.remove("hidden");
-    updateSalePreview();
-  }
-  function closeSaleModal(){ $("saleModal").classList.add("hidden"); $("saleForm").reset(); }
-  function updateSalePreview(){
-    const product=cache.products.find(p=>p.id===$("saleProduct").value);
-    const qty=Number($("saleQuantity").value||0);
-    const price=Number(product?.retail_price||0);
-    $("saleAvailable").textContent=product?String(product.stock_quantity):"No stock available";
-    $("saleUnitPrice").textContent=product?money(price):"—";
-    $("saleTotal").textContent=money(product&&qty>0?qty*price:0);
-    $("saleQuantity").max=product?String(product.stock_quantity):"1";
-  }
-  $("saleProduct").addEventListener("change",updateSalePreview);
-  $("saleQuantity").addEventListener("input",updateSalePreview);
-  $("cancelSale").addEventListener("click",closeSaleModal);
-  $("saleModal").addEventListener("click",e=>{if(e.target===$("saleModal"))closeSaleModal();});
-  $("saleForm").addEventListener("submit",async e=>{
-    e.preventDefault();
-    const product=cache.products.find(p=>p.id===$("saleProduct").value);
-    const quantity=Number($("saleQuantity").value);
-    const message=$("saleFormMessage"),btn=$("saveSaleBtn");
-    if(profile?.role!=="reseller" || !resellerAccount){message.className="modal-message error";message.textContent="Only a linked reseller account can record sales.";return;}
-    if(!product || !Number.isInteger(quantity) || quantity<1){message.className="modal-message error";message.textContent="Choose a product and enter a valid quantity.";return;}
-    if(quantity>Number(product.stock_quantity||0)){message.className="modal-message error";message.textContent="Not enough stock. Available: "+product.stock_quantity;return;}
-    btn.disabled=true;btn.textContent="Saving…";message.className="modal-message";message.textContent="";
-    try{
-      const {data,error}=await client.rpc("record_reseller_sale",{
-        p_items:[{product_id:product.id,quantity}],
-        p_payment_method:$("salePaymentMethod").value
-      });
-      if(error)throw error;
-      closeSaleModal();
-      await loadWorkspace();
-      alert("Sale saved successfully. Reseller stock updated. Total: "+money(data?.total_amount));
-    }catch(err){
-      message.className="modal-message error";
-      message.textContent=err.message||"Could not save sale.";
-      btn.disabled=false;btn.textContent="Save Sale";
-    }
-  });
+  let saleCart=[];
+  function renderSaleCart(){const host=$("saleCart");if(!saleCart.length){host.innerHTML='<div class="empty">Choose a product above.</div>';$ ("saleTotal").textContent=money(0);return;}host.innerHTML=saleCart.map(l=>{const p=cache.products.find(x=>x.id===l.product_id);return `<div class="cart-line"><span>${safe(p?.product_name)} · ${money(p?.retail_price)} × ${l.quantity}</span><span><button type="button" data-cart="minus" data-id="${l.product_id}">−</button> ${l.quantity} <button type="button" data-cart="plus" data-id="${l.product_id}">+</button> <button type="button" data-cart="remove" data-id="${l.product_id}">×</button></span></div>`}).join("");const total=saleCart.reduce((a,l)=>a+Number(cache.products.find(p=>p.id===l.product_id)?.retail_price||0)*l.quantity,0);$("saleTotal").textContent=money(total);}
+  function openSaleModal(){saleCart=[];const available=cache.products.filter(p=>Number(p.stock_quantity||0)>0&&p.active!==false);$("saleProductCards").innerHTML=available.map(p=>`<button class="sale-product-card" type="button" data-add-sale-product="${p.id}">${p.image_url?`<img src="${safe(p.image_url)}" alt="">`:'<div style="height:76px;display:grid;place-items:center;background:#edf2f8">📦</div>'}<strong>${safe(p.product_name)}</strong><small>${money(p.retail_price)} · Stock ${p.stock_quantity}</small></button>`).join("")||'<div class="empty">No stock available. Ask the owner to distribute products.</div>';$ ("saleForm").reset();$("saleFormMessage").textContent="";$("saleFormMessage").className="modal-message";$("saveSaleBtn").disabled=false;$("saveSaleBtn").textContent="Save Sale";$("saleModal").classList.remove("hidden");renderSaleCart();}
+  function closeSaleModal(){$("saleModal").classList.add("hidden");$("saleForm").reset();saleCart=[];}
+  $("saleProductCards").addEventListener("click",e=>{const b=e.target.closest("[data-add-sale-product]");if(!b)return;const id=b.dataset.addSaleProduct,p=cache.products.find(x=>x.id===id),l=saleCart.find(x=>x.product_id===id);if(l){if(l.quantity>=Number(p.stock_quantity||0)){alert("No more stock available.");return;}l.quantity++;}else saleCart.push({product_id:id,quantity:1});renderSaleCart();});
+  $("saleCart").addEventListener("click",e=>{const b=e.target.closest("[data-cart]");if(!b)return;const l=saleCart.find(x=>x.product_id===b.dataset.id),p=cache.products.find(x=>x.id===b.dataset.id);if(!l)return;if(b.dataset.cart==="plus"){if(l.quantity<Number(p?.stock_quantity||0))l.quantity++;else alert("No more stock available.");}if(b.dataset.cart==="minus")l.quantity--;if(b.dataset.cart==="remove"||l.quantity<=0)saleCart=saleCart.filter(x=>x.product_id!==b.dataset.id);renderSaleCart();});
+  $("cancelSale").addEventListener("click",closeSaleModal);$("saleModal").addEventListener("click",e=>{if(e.target===$("saleModal"))closeSaleModal();});
+  $("saleForm").addEventListener("submit",async e=>{e.preventDefault();const message=$("saleFormMessage"),btn=$("saveSaleBtn");if(profile?.role!=="reseller"||!resellerAccount){message.className="modal-message error";message.textContent="Only a linked reseller account can record sales.";return;}if(!saleCart.length){message.className="modal-message error";message.textContent="Choose at least one product.";return;}for(const l of saleCart){const p=cache.products.find(x=>x.id===l.product_id);if(!p||l.quantity>Number(p.stock_quantity||0)){message.className="modal-message error";message.textContent=`Not enough stock for ${p?.product_name||"product"}.`;return;}}btn.disabled=true;btn.textContent="Saving…";try{const {data,error}=await client.rpc("record_reseller_sale",{p_items:saleCart.map(x=>({product_id:x.product_id,quantity:x.quantity})),p_payment_method:$("salePaymentMethod").value});if(error)throw error;const id=data?.sale_id;closeSaleModal();await loadWorkspace();if(id)printReceipt(id);alert("Sale saved successfully. Reseller stock updated. Total: "+money(data?.total_amount));}catch(err){message.className="modal-message error";message.textContent=err.message||"Could not save sale.";btn.disabled=false;btn.textContent="Save Sale";}});
+
 
   function openDistributionModal(){
     const resellerSelect=$("distributionReseller"),productSelect=$("distributionProduct");
@@ -742,7 +701,7 @@
     $("productCostInput").value=old.purchase_cost??"";
     $("productResellerPriceInput").value=old.reseller_price??"";
     $("productRetailPriceInput").value=old.retail_price??"";
-    $("productStockInput").value=old.stock_quantity??"";
+    $("productStockInput").value=old.stock_quantity??"";$("productImageInput").value="";$("productImagePreview").innerHTML=old.image_url?`<img src="${safe(old.image_url)}" style="width:100px;height:100px;object-fit:cover;border-radius:10px">`:"";
     $("productFormMessage").textContent="";
     $("productFormMessage").className="modal-message";
     $("saveProductBtn").disabled=false;
@@ -754,6 +713,7 @@
     $("productForm").reset();
     editingProductId=null;
   }
+  $("productImageInput").addEventListener("change",()=>{const f=$("productImageInput").files?.[0];if(f){const u=URL.createObjectURL(f);$("productImagePreview").innerHTML=`<img src="${u}" style="width:100px;height:100px;object-fit:cover;border-radius:10px">`;}});
   $("cancelProductForm").addEventListener("click",closeProductModal);
   $("productModal").addEventListener("click",e=>{
     if(e.target===$("productModal"))closeProductModal();
@@ -766,7 +726,7 @@
     const cost=Number($("productCostInput").value);
     const resellerPrice=Number($("productResellerPriceInput").value);
     const retailPrice=Number($("productRetailPriceInput").value);
-    const stock=Number($("productStockInput").value);
+    const stock=Number($("productStockInput").value);const imageFile=$("productImageInput").files?.[0];
     if(!name||![cost,resellerPrice,retailPrice,stock].every(Number.isFinite)||[cost,resellerPrice,retailPrice,stock].some(v=>v<0)||!Number.isInteger(stock)){
       message.className="modal-message error";
       message.textContent="Enter a product name, valid non-negative prices, and a whole-number stock quantity.";
@@ -776,7 +736,7 @@
     message.className="modal-message";message.textContent="";
     try{
       const old=cache.products.find(x=>x.id===editingProductId)||{};
-      const data={business_id:business.id,product_name:name,sku:sku||null,purchase_cost:cost,reseller_price:resellerPrice,retail_price:retailPrice,stock_quantity:stock,active:old.active??true};
+      if(imageFile&&(imageFile.size>5*1024*1024||!imageFile.type.startsWith("image/")))throw new Error("Choose an image under 5 MB.");let imageUrl=old.image_url||null;if(imageFile){const ext=(imageFile.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${business.id}/${crypto.randomUUID()}.${ext}`;const {error:upErr}=await client.storage.from("product-images").upload(path,imageFile,{upsert:true,contentType:imageFile.type});if(upErr)throw new Error("Image upload failed. Run the product-images SQL setup: "+upErr.message);imageUrl=client.storage.from("product-images").getPublicUrl(path).data.publicUrl;}const data={business_id:business.id,product_name:name,sku:sku||null,purchase_cost:cost,reseller_price:resellerPrice,retail_price:retailPrice,stock_quantity:stock,active:old.active??true,image_url:imageUrl};
       const query=editingProductId
         ?client.from("products").update(data).eq("id",editingProductId).eq("business_id",business.id)
         :client.from("products").insert(data);
