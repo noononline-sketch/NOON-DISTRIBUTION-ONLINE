@@ -287,7 +287,14 @@
   }
   function showApp(){ $("authView").classList.add("hidden"); $("appView").classList.remove("hidden"); $("userEmail").textContent=currentUser.email||""; }
   function showAuth(){ $("appView").classList.add("hidden"); $("authView").classList.remove("hidden"); }
-  function activateSection(name){ document.querySelectorAll(".section").forEach(s=>s.classList.toggle("active",s.id===name)); document.querySelectorAll("#navigation button").forEach(b=>b.classList.toggle("active",b.dataset.section===name)); const title=document.querySelector(`#navigation button[data-section="${name}"]`); $("welcomeTitle").textContent=title?title.textContent.replace(/^[^A-Za-z]+/,"").trim():"Dashboard"; }
+  function activateSection(name){
+    const resellerAllowed=["dashboard","products","sales","wallet"];
+    if(profile?.role==="reseller"&&!resellerAllowed.includes(name))name="dashboard";
+    document.querySelectorAll(".section").forEach(s=>s.classList.toggle("active",s.id===name));
+    document.querySelectorAll("#navigation button").forEach(b=>b.classList.toggle("active",b.dataset.section===name));
+    const title=document.querySelector(`#navigation button[data-section="${name}"]`);
+    $("welcomeTitle").textContent=title?title.textContent.replace(/^[^A-Za-z]+/,"").trim():"Dashboard";
+  }
   $("navigation").addEventListener("click",e=>{const b=e.target.closest("button[data-section]");if(b)activateSection(b.dataset.section);});
   async function loadWorkspace(){
     const p=await client.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
@@ -308,7 +315,15 @@
     $("businessTitle").textContent=business.business_name;
     $("rolePill").textContent=owner?"OWNER / ADMIN":"RESELLER";
     $("resellersNav").classList.toggle("hidden",!owner);
+    // Owner sees every management page. Resellers only see Dashboard, Products, Sales and Deposits & Balance.
+    ["distributions","reports"].forEach(name=>{
+      const navButton=document.querySelector(`#navigation button[data-section="${name}"]`);
+      const section=$(name);
+      if(navButton)navButton.classList.toggle("hidden",!owner);
+      if(section)section.classList.toggle("hidden",!owner);
+    });
     $("welcomeSub").textContent=owner?"Here is your business overview.":"Here is your reseller overview.";
+    if(!owner)activateSection("dashboard");
     const bid=business.id;
     const [products,resellers,sales,wallet,distributions]=await Promise.all([
       client.from("products").select("*").eq("business_id",bid).order("created_at",{ascending:false}),
