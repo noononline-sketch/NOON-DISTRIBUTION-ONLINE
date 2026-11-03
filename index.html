@@ -147,7 +147,7 @@
       <label for="editResellerName">Reseller name</label>
       <input class="field" id="editResellerName" type="text" required>
       <label for="editResellerEmail">Email address</label>
-      <input class="field" id="editResellerEmail" type="email" readonly>
+      <input class="field" id="editResellerEmail" type="email" placeholder="reseller@example.com">
       <label for="editResellerPhone">Phone number</label>
       <input class="field" id="editResellerPhone" type="tel" placeholder="+966...">
       <label for="editResellerBank">Bank name</label>
@@ -1111,7 +1111,9 @@
     if(!old)return;
     const name=$("editResellerName").value.trim();
     if(!name){$("editResellerMessage").className="modal-message error";$("editResellerMessage").textContent="Please enter the reseller name.";return;}
-    const data={business_id:business.id,reseller_name:name,phone:$("editResellerPhone").value.trim()||null,bank_name:$("editResellerBank").value.trim()||null,bank_account_number:$("editResellerAccount").value.trim()||null,account_holder_name:$("editResellerHolder").value.trim()||name,active:old.active??true};
+    const email=$("editResellerEmail").value.trim();
+    if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$("editResellerMessage").className="modal-message error";$("editResellerMessage").textContent="Please enter a valid email address.";return;}
+    const data={business_id:business.id,reseller_name:name,email:email||null,phone:$("editResellerPhone").value.trim()||null,bank_name:$("editResellerBank").value.trim()||null,bank_account_number:$("editResellerAccount").value.trim()||null,account_holder_name:$("editResellerHolder").value.trim()||name,active:old.active??true};
     const btn=$("saveEditResellerBtn"),message=$("editResellerMessage");
     btn.disabled=true;btn.textContent="Saving…";message.className="modal-message";message.textContent="";
     try{
