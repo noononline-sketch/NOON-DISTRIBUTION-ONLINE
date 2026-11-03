@@ -314,6 +314,23 @@
               <label for="settingsEmail">Email address</label>
               <input class="field" id="settingsEmail" type="email" autocomplete="email" required>
               <p class="muted" style="margin-top:8px">Changing your email may require confirmation from your new email address.</p>
+              <div class="panel" style="margin-top:16px;padding:15px;background:#f5f8fd;box-shadow:none">
+                <h3 id="paymentDetailsHeading">Bank Payment Details</h3>
+                <p class="muted" id="paymentDetailsHelp">Enter the bank account where payments should be sent.</p>
+                <label for="settingsBankName">Bank name</label>
+                <input class="field" id="settingsBankName" type="text" placeholder="Bank name">
+                <label for="settingsBankAccount">IBAN / Account number</label>
+                <input class="field" id="settingsBankAccount" type="text" autocomplete="off" placeholder="SA...">
+                <label for="settingsAccountHolder">Account holder name</label>
+                <input class="field" id="settingsAccountHolder" type="text" autocomplete="name" placeholder="Name registered with bank">
+              </div>
+              <div id="resellerOwnerPaymentPanel" class="panel hidden" style="margin-top:16px;padding:15px;background:#edf4ff;box-shadow:none">
+                <h3>Owner Payment Account</h3>
+                <p class="muted">Use these details to transfer payments to the business owner.</p>
+                <p><strong>Bank:</strong> <span id="ownerBankDisplay">—</span></p>
+                <p><strong>IBAN / Account No.:</strong> <span id="ownerAccountDisplay">—</span></p>
+                <p><strong>Account holder:</strong> <span id="ownerHolderDisplay">—</span></p>
+              </div>
               <div id="settingsMessage" class="modal-message" aria-live="polite"></div>
               <div class="modal-actions"><button class="primary" id="saveSettingsBtn" type="submit">Save Changes</button></div>
             </form>
@@ -461,6 +478,16 @@
     $("settingsFullName").value=profile.full_name||resellerAccount?.reseller_name||"";
     $("settingsPhone").value=profile.phone||resellerAccount?.phone||"";
     $("settingsEmail").value=currentUser.email||"";
+    const paymentSource=owner?business:(resellerAccount||{});
+    $("settingsBankName").value=paymentSource.bank_name||"";
+    $("settingsBankAccount").value=paymentSource.bank_account_number||"";
+    $("settingsAccountHolder").value=paymentSource.account_holder_name||"";
+    $("paymentDetailsHeading").textContent=owner?"Owner Payment Account":"Your Bank Account";
+    $("paymentDetailsHelp").textContent=owner?"Resellers can use this account to send payments to the business owner.":"Enter your bank account details so the owner can view where to send your payments.";
+    $("resellerOwnerPaymentPanel").classList.toggle("hidden",owner);
+    $("ownerBankDisplay").textContent=business.bank_name||"Not provided";
+    $("ownerAccountDisplay").textContent=business.bank_account_number||"Not provided";
+    $("ownerHolderDisplay").textContent=business.account_holder_name||"Not provided";
     $("resellersNav").classList.toggle("hidden",!owner);
     // Owner sees every management page. Resellers only see Dashboard, Products, Sales and Deposits & Balance.
     ["distributions","reports","notifications"].forEach(name=>{
@@ -734,7 +761,7 @@
     document.querySelectorAll('[data-action="add-deposit"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
     const productRows=cache.products.filter(x=>profile.role==="owner"||(Number(x.stock_quantity||0)>0&&x.active!==false)).map(x=>`<tr><td>${x.image_url?`<img class="product-image" src="${safe(x.image_url)}" alt="">`:""}${safe(x.product_name)}</td>${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
     $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],productRows,profile.role==="reseller"?"No products distributed to you yet.":"No products added yet.");
-    $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
+    $("resellersTable").innerHTML=table(["Reseller","Email","Phone","Bank","IBAN / Account No.","Account Holder","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.email||"—")}${cell(x.phone||"—")}${cell(x.bank_name||"—")}${cell(x.bank_account_number||"—")}${cell(x.account_holder_name||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
     $("distributionsTable").innerHTML=table(["Date","Reseller","Product","Quantity","Total","Status"],view.distributions.map(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id);const p=cache.products.find(v=>v.id===x.product_id);return `<tr>${cell(x.distribution_date)}${cell(r?.reseller_name||"Your account")}${cell(p?.product_name||"—")}${cell(x.quantity??"—")}${cell(money(x.total_amount))}${cell(x.status)}</tr>`}),"No distributions recorded yet.");
     $("salesTable").innerHTML=table(["Date","Payment","Total","Receipt"],view.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}<td><button class="row-action" data-action="print-receipt" data-id="${x.id}">Print / Receipt</button></td></tr>`),"No sales recorded for this date.");renderNotifications(view);
     $("walletTable").innerHTML=table(["Date","Type","Direction","Amount","Description"],view.wallet.map(x=>`<tr>${cell(new Date(x.created_at).toLocaleString())}${cell(x.transaction_type)}${cell(x.direction)}${cell(money(x.amount))}${cell(x.description||"—")}</tr>`),"No wallet transactions recorded yet.");
@@ -763,7 +790,10 @@
         const old=cache.resellers.find(x=>x.id===id)||{};
         const name=ask("Reseller name:",old.reseller_name||"");if(name===null||!name)return;
         const phone=ask("Phone (optional):",old.phone||"");if(phone===null)return;
-        const data={business_id:bid,reseller_name:name,phone:phone||null,active:old.active??true};
+        const bankName=ask("Bank name:",old.bank_name||"");if(bankName===null)return;
+        const bankAccount=ask("IBAN / Account number:",old.bank_account_number||"");if(bankAccount===null)return;
+        const accountHolder=ask("Account holder name:",old.account_holder_name||name);if(accountHolder===null)return;
+        const data={business_id:bid,reseller_name:name,phone:phone||null,bank_name:bankName||null,bank_account_number:bankAccount||null,account_holder_name:accountHolder||null,active:old.active??true};
         const {error}=await client.from("reseller_accounts").update(data).eq("id",id).eq("business_id",bid);if(error)throw error;
       }else if(action==="toggle-reseller"){
         const old=cache.resellers.find(x=>x.id===id);if(!old)return;
@@ -1398,11 +1428,19 @@
     try{
       const {error:profileError}=await client.from("profiles").update({full_name:fullName,phone:phone||null}).eq("id",currentUser.id);
       if(profileError)throw profileError;
+      const bankName=$("settingsBankName").value.trim();
+      const bankAccount=$("settingsBankAccount").value.trim();
+      const accountHolder=$("settingsAccountHolder").value.trim();
       if(profile.role==="reseller"&&resellerAccount){
         const {error:resellerError}=await client.from("reseller_accounts")
-          .update({reseller_name:fullName,phone:phone||null})
+          .update({reseller_name:fullName,phone:phone||null,bank_name:bankName||null,bank_account_number:bankAccount||null,account_holder_name:accountHolder||null})
           .eq("id",resellerAccount.id).eq("user_id",currentUser.id);
         if(resellerError)throw resellerError;
+      }else if(profile.role==="owner"&&business){
+        const {error:businessError}=await client.from("businesses")
+          .update({bank_name:bankName||null,bank_account_number:bankAccount||null,account_holder_name:accountHolder||null})
+          .eq("id",business.id).eq("owner_id",currentUser.id);
+        if(businessError)throw businessError;
       }
       if(email.toLowerCase()!==String(currentUser.email||"").toLowerCase()){
         const {error:emailError}=await client.auth.updateUser({email});
