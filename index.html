@@ -140,6 +140,30 @@
     </form>
   </div>
 
+  <div id="editResellerModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="editResellerTitle">
+    <form id="editResellerForm" class="modal-card">
+      <h2 id="editResellerTitle">Edit Reseller</h2>
+      <p class="modal-sub">Update reseller profile and bank payment details.</p>
+      <label for="editResellerName">Reseller name</label>
+      <input class="field" id="editResellerName" type="text" required>
+      <label for="editResellerEmail">Email address</label>
+      <input class="field" id="editResellerEmail" type="email" readonly>
+      <label for="editResellerPhone">Phone number</label>
+      <input class="field" id="editResellerPhone" type="tel" placeholder="+966...">
+      <label for="editResellerBank">Bank name</label>
+      <input class="field" id="editResellerBank" type="text" placeholder="Bank name">
+      <label for="editResellerAccount">IBAN / Account number</label>
+      <input class="field" id="editResellerAccount" type="text" autocomplete="off" placeholder="SA...">
+      <label for="editResellerHolder">Account holder name</label>
+      <input class="field" id="editResellerHolder" type="text" placeholder="Name registered with bank">
+      <div id="editResellerMessage" class="modal-message" aria-live="polite"></div>
+      <div class="modal-actions">
+        <button class="secondary-btn" id="cancelEditReseller" type="button">Cancel</button>
+        <button class="primary" id="saveEditResellerBtn" type="submit">Save Changes</button>
+      </div>
+    </form>
+  </div>
+
   <div id="productModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
     <form id="productForm" class="modal-card">
       <h2 id="productModalTitle">Add New Product</h2>
@@ -787,14 +811,8 @@
         openAddResellerModal();
         return;
       }else if(action==="edit-reseller"){
-        const old=cache.resellers.find(x=>x.id===id)||{};
-        const name=ask("Reseller name:",old.reseller_name||"");if(name===null||!name)return;
-        const phone=ask("Phone (optional):",old.phone||"");if(phone===null)return;
-        const bankName=ask("Bank name:",old.bank_name||"");if(bankName===null)return;
-        const bankAccount=ask("IBAN / Account number:",old.bank_account_number||"");if(bankAccount===null)return;
-        const accountHolder=ask("Account holder name:",old.account_holder_name||name);if(accountHolder===null)return;
-        const data={business_id:bid,reseller_name:name,phone:phone||null,bank_name:bankName||null,bank_account_number:bankAccount||null,account_holder_name:accountHolder||null,active:old.active??true};
-        const {error}=await client.from("reseller_accounts").update(data).eq("id",id).eq("business_id",bid);if(error)throw error;
+        openEditResellerModal(id);
+        return;
       }else if(action==="toggle-reseller"){
         const old=cache.resellers.find(x=>x.id===id);if(!old)return;
         const {error}=await client.from("reseller_accounts").update({active:!old.active}).eq("id",id).eq("business_id",bid);if(error)throw error;
@@ -1059,6 +1077,50 @@
       message.textContent=err.message||"Could not save product.";
       btn.disabled=false;btn.textContent=editingProductId?"Save Changes":"Save Product";
     }
+  });
+
+  let editingResellerId=null;
+  function openEditResellerModal(id){
+    const old=cache.resellers.find(x=>x.id===id);
+    if(!old){alert("Reseller record not found. Please refresh and try again.");return;}
+    editingResellerId=id;
+    $("editResellerName").value=old.reseller_name||"";
+    $("editResellerEmail").value=old.email||"";
+    $("editResellerPhone").value=old.phone||"";
+    $("editResellerBank").value=old.bank_name||"";
+    $("editResellerAccount").value=old.bank_account_number||"";
+    $("editResellerHolder").value=old.account_holder_name||old.reseller_name||"";
+    $("editResellerMessage").textContent="";
+    $("editResellerMessage").className="modal-message";
+    $("saveEditResellerBtn").disabled=false;
+    $("saveEditResellerBtn").textContent="Save Changes";
+    $("editResellerModal").classList.remove("hidden");
+    $("editResellerName").focus();
+  }
+  function closeEditResellerModal(){
+    $("editResellerModal").classList.add("hidden");
+    $("editResellerForm").reset();
+    editingResellerId=null;
+  }
+  $("cancelEditReseller").addEventListener("click",closeEditResellerModal);
+  $("editResellerModal").addEventListener("click",e=>{if(e.target===$("editResellerModal"))closeEditResellerModal();});
+  $("editResellerForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    if(profile?.role!=="owner"||!editingResellerId){alert("Only the owner can edit reseller records here.");return;}
+    const old=cache.resellers.find(x=>x.id===editingResellerId);
+    if(!old)return;
+    const name=$("editResellerName").value.trim();
+    if(!name){$("editResellerMessage").className="modal-message error";$("editResellerMessage").textContent="Please enter the reseller name.";return;}
+    const data={business_id:business.id,reseller_name:name,phone:$("editResellerPhone").value.trim()||null,bank_name:$("editResellerBank").value.trim()||null,bank_account_number:$("editResellerAccount").value.trim()||null,account_holder_name:$("editResellerHolder").value.trim()||name,active:old.active??true};
+    const btn=$("saveEditResellerBtn"),message=$("editResellerMessage");
+    btn.disabled=true;btn.textContent="Saving…";message.className="modal-message";message.textContent="";
+    try{
+      const {error}=await client.from("reseller_accounts").update(data).eq("id",editingResellerId).eq("business_id",business.id);
+      if(error)throw error;
+      closeEditResellerModal();
+      await loadWorkspace();
+      alert("Reseller and bank payment details saved successfully.");
+    }catch(err){message.className="modal-message error";message.textContent=err.message||"Could not save reseller details.";btn.disabled=false;btn.textContent="Save Changes";}
   });
 
   function openAddResellerModal(){
