@@ -887,18 +887,14 @@
         if(ask(`To confirm, type DELETE for ${target.reseller_name||"this reseller"}:`)!=="DELETE"){
           alert("Deletion cancelled. The confirmation text did not match.");return;
         }
-        // Perform the entire deletion through a server-side, owner-validated RPC.
-        // This avoids partial client-side deletes and browser-role table permission failures.
-        const {error}=await client.rpc("owner_delete_reseller_all_data",{
-          p_business_id:bid,
-          p_reseller_id:id
+        // Edge Function deletes business data through the owner-validated RPC,
+        // then removes the reseller's Supabase Auth login using the service role server-side.
+        const {data,error}=await client.functions.invoke("owner-delete-reseller",{
+          body:{p_business_id:bid,p_reseller_id:id}
         });
-        if(error){
-          if(error.code==="42883"||/function .*owner_delete_reseller_all_data.* does not exist/i.test(error.message||"")){
-            throw new Error("Supabase setup required: owner_delete_reseller_all_data RPC is not installed yet. Install the secure SQL function before deleting a reseller.");
-          }
-          throw new Error(`Reseller deletion failed: ${error.message}`);
-        }
+        if(error)throw new Error(`Reseller deletion failed: ${error.message}`);
+        if(data?.error)throw new Error(`Reseller deletion failed: ${data.error}`);
+        if(data?.success!==true)throw new Error("The server did not confirm reseller deletion.");
       }else if(action==="add-distribution"){
         openDistributionModal();
         return;
