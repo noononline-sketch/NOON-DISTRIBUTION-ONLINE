@@ -492,6 +492,8 @@
       const r=await client.from("reseller_accounts").select("*").eq("user_id",currentUser.id).limit(1).maybeSingle();
       if(r.error)throw r.error; resellerAccount=r.data;
       if(!resellerAccount)throw new Error("Your reseller account has not been linked yet. Please contact the owner.");
+      // Enforce the Owner's Active/Inactive setting whenever a reseller workspace loads.
+      if(resellerAccount.active===false)throw new Error("Your reseller account is inactive. Please contact the business owner to activate it.");
       const b=await client.from("businesses").select("*").eq("id",resellerAccount.business_id).maybeSingle();
       if(b.error)throw b.error;business=b.data;
     }
@@ -1529,6 +1531,25 @@
       showResetPassword();
     }
   });
+  // Recheck status for a reseller who is already signed in. This is a client-side
+  // session guard; database RLS/RPC checks are still required for full security.
+  let resellerStatusCheckInProgress=false;
+  setInterval(async()=>{
+    if(resellerStatusCheckInProgress||!currentUser||profile?.role!=="reseller"||!resellerAccount)return;
+    resellerStatusCheckInProgress=true;
+    try{
+      const {data,error}=await client.from("reseller_accounts").select("active").eq("id",resellerAccount.id).maybeSingle();
+      if(error)throw error;
+      if(!data||data.active===false){
+        await client.auth.signOut();
+        currentUser=null;profile=null;business=null;resellerAccount=null;
+        showAuth();showAuthForm("loginForm");
+        showMessage("Your reseller account is inactive. Please contact the business owner to activate it.");
+      }
+    }catch(err){
+      console.warn("Could not recheck reseller account status:",err.message||err);
+    }finally{resellerStatusCheckInProgress=false;}
+  },30000);
   const recoveryLink=window.location.hash.includes("type=recovery");
   if(invitationToken){
     showAuth();showAuthForm("resellerRegisterForm");
