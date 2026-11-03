@@ -431,6 +431,11 @@
       const r=await client.from("reseller_accounts").select("*").eq("user_id",currentUser.id).limit(1).maybeSingle();
       if(r.error)throw r.error; resellerAccount=r.data;
       if(!resellerAccount)throw new Error("Your reseller account has not been linked yet. Please contact the owner.");
+      // Apply the owner-controlled status during login and session restoration.
+      if(resellerAccount.active===false){
+        resellerAccount=null;
+        throw new Error("Your reseller account is inactive. Please contact the business owner to activate it.");
+      }
       const b=await client.from("businesses").select("*").eq("id",resellerAccount.business_id).maybeSingle();
       if(b.error)throw b.error;business=b.data;
     }
@@ -646,7 +651,7 @@
     document.querySelectorAll('[data-action="add-deposit"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
     const productRows=cache.products.map(x=>`<tr><td>${x.image_url?`<img class="product-image" src="${safe(x.image_url)}" alt="">`:""}${safe(x.product_name)}</td>${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
     $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],productRows,"No products added yet.");
-    $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button><button class="row-action danger" data-action="delete-reseller" data-id="${x.id}">Delete</button></td></tr>`),"No reseller accounts added yet.");
+    $("resellersTable").innerHTML=table(["Reseller","Phone","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.phone||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
     $("distributionsTable").innerHTML=table(["Date","Reseller","Product","Quantity","Total","Status"],view.distributions.map(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id);const p=cache.products.find(v=>v.id===x.product_id);return `<tr>${cell(x.distribution_date)}${cell(r?.reseller_name||"Your account")}${cell(p?.product_name||"—")}${cell(x.quantity??"—")}${cell(money(x.total_amount))}${cell(x.status)}</tr>`}),"No distributions recorded yet.");
     $("salesTable").innerHTML=table(["Date","Payment","Total","Receipt"],view.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}<td><button class="row-action" data-action="print-receipt" data-id="${x.id}">Print / Receipt</button></td></tr>`),"No sales recorded for this date.");renderNotifications(view);
     $("walletTable").innerHTML=table(["Date","Type","Direction","Amount","Description"],view.wallet.map(x=>`<tr>${cell(new Date(x.created_at).toLocaleString())}${cell(x.transaction_type)}${cell(x.direction)}${cell(money(x.amount))}${cell(x.description||"—")}</tr>`),"No wallet transactions recorded yet.");
@@ -680,17 +685,12 @@
       }else if(action==="toggle-reseller"){
         const old=cache.resellers.find(x=>x.id===id);if(!old)return;
         const {error}=await client.from("reseller_accounts").update({active:!old.active}).eq("id",id).eq("business_id",bid);if(error)throw error;
-      }else if(action==="delete-reseller"){
-        const old=cache.resellers.find(x=>x.id===id);if(!old)return;
-        const warning=`Permanently delete reseller “${old.reseller_name}” from this business?\n\nThis removes the reseller record. Related sales/distribution history may prevent deletion due to database relationships. The login identity itself is not deleted.`;
-        if(!confirm(warning))return;
-        const {error}=await client.from("reseller_accounts").delete().eq("id",id).eq("business_id",bid);
-        if(error)throw error;
       }else if(action==="add-distribution"){
         openDistributionModal();
         return;
       }else if(action==="add-sale"){
         if(profile.role!=="reseller"){alert("Only reseller accounts can record their own product sales.");return;}
+        if(!resellerAccount||resellerAccount.active===false){alert("Your reseller account is inactive. Contact the business owner to activate it.");return;}
         openSaleModal();
         return;
       }else if(action==="add-deposit"){
@@ -816,7 +816,7 @@
     $("saleUnitPrice").textContent=firstProduct?money(firstProduct.retail_price):"—";
     $("saleTotal").textContent=money(total);
   }
-  function openSaleModal(){saleCart=[];const available=cache.products.filter(p=>Number(p.stock_quantity||0)>0&&p.active!==false);$("saleProductCards").innerHTML=available.map(p=>`<button class="sale-product-card" type="button" data-add-sale-product="${p.id}">${p.image_url?`<img src="${safe(p.image_url)}" alt="">`:'<div style="height:76px;display:grid;place-items:center;background:#edf2f8">📦</div>'}<strong>${safe(p.product_name)}</strong><small>${money(p.retail_price)} · Stock ${p.stock_quantity}</small></button>`).join("")||'<div class="empty">No stock available. Ask the owner to distribute products.</div>';$ ("saleForm").reset();$("saleFormMessage").textContent="";$("saleFormMessage").className="modal-message";$("saveSaleBtn").disabled=false;$("saveSaleBtn").textContent="Save Sale";$("saleModal").classList.remove("hidden");renderSaleCart();}
+  function openSaleModal(){if(profile?.role!=="reseller"||!resellerAccount||resellerAccount.active===false){alert("Your reseller account is inactive. Contact the business owner to activate it.");return;}saleCart=[];const available=cache.products.filter(p=>Number(p.stock_quantity||0)>0&&p.active!==false);$("saleProductCards").innerHTML=available.map(p=>`<button class="sale-product-card" type="button" data-add-sale-product="${p.id}">${p.image_url?`<img src="${safe(p.image_url)}" alt="">`:'<div style="height:76px;display:grid;place-items:center;background:#edf2f8">📦</div>'}<strong>${safe(p.product_name)}</strong><small>${money(p.retail_price)} · Stock ${p.stock_quantity}</small></button>`).join("")||'<div class="empty">No stock available. Ask the owner to distribute products.</div>';$ ("saleForm").reset();$("saleFormMessage").textContent="";$("saleFormMessage").className="modal-message";$("saveSaleBtn").disabled=false;$("saveSaleBtn").textContent="Save Sale";$("saleModal").classList.remove("hidden");renderSaleCart();}
   function closeSaleModal(){$("saleModal").classList.add("hidden");$("saleForm").reset();saleCart=[];}
   $("saleProductCards").addEventListener("click",e=>{const b=e.target.closest("[data-add-sale-product]");if(!b)return;const id=b.dataset.addSaleProduct,p=cache.products.find(x=>x.id===id),l=saleCart.find(x=>x.product_id===id);if(l){if(l.quantity>=Number(p.stock_quantity||0)){alert("No more stock available.");return;}l.quantity++;}else saleCart.push({product_id:id,quantity:1});renderSaleCart();});
   $("saleCart").addEventListener("click",e=>{const b=e.target.closest("[data-cart]");if(!b)return;const l=saleCart.find(x=>x.product_id===b.dataset.id),p=cache.products.find(x=>x.id===b.dataset.id);if(!l)return;if(b.dataset.cart==="plus"){if(l.quantity<Number(p?.stock_quantity||0))l.quantity++;else alert("No more stock available.");}if(b.dataset.cart==="minus")l.quantity--;if(b.dataset.cart==="remove"||l.quantity<=0)saleCart=saleCart.filter(x=>x.product_id!==b.dataset.id);renderSaleCart();});
