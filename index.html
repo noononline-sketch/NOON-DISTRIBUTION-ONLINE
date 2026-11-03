@@ -887,23 +887,18 @@
         if(ask(`To confirm, type DELETE for ${target.reseller_name||"this reseller"}:`)!=="DELETE"){
           alert("Deletion cancelled. The confirmation text did not match.");return;
         }
-        // Delete dependent records first so foreign-key references do not block the operation.
-        const {data:sales,error:salesFetchError}=await client.from("sales").select("id").eq("business_id",bid).eq("reseller_id",id);
-        if(salesFetchError)throw salesFetchError;
-        const saleIds=(sales||[]).map(row=>row.id).filter(Boolean);
-        if(saleIds.length){
-          const {error}=await client.from("sale_items").delete().in("sale_id",saleIds);if(error)throw error;
-          const {error:saleDeleteError}=await client.from("sales").delete().eq("business_id",bid).eq("reseller_id",id);if(saleDeleteError)throw saleDeleteError;
+        // Perform the entire deletion through a server-side, owner-validated RPC.
+        // This avoids partial client-side deletes and browser-role table permission failures.
+        const {error}=await client.rpc("owner_delete_reseller_all_data",{
+          p_business_id:bid,
+          p_reseller_id:id
+        });
+        if(error){
+          if(error.code==="42883"||/function .*owner_delete_reseller_all_data.* does not exist/i.test(error.message||"")){
+            throw new Error("Supabase setup required: owner_delete_reseller_all_data RPC is not installed yet. Install the secure SQL function before deleting a reseller.");
+          }
+          throw new Error(`Reseller deletion failed: ${error.message}`);
         }
-        const dependentDeletes=[
-          ["reseller_profit_withdrawals",()=>client.from("reseller_profit_withdrawals").delete().eq("business_id",bid).eq("reseller_id",id)],
-          ["wallet_transactions",()=>client.from("wallet_transactions").delete().eq("business_id",bid).eq("reseller_id",id)],
-          ["distributions",()=>client.from("distributions").delete().eq("business_id",bid).eq("reseller_id",id)],
-          ["reseller_inventory",()=>client.from("reseller_inventory").delete().eq("business_id",bid).eq("reseller_id",id)]
-        ];
-        for(const [tableName,runDelete] of dependentDeletes){const {error}=await runDelete();if(error)throw new Error(`${tableName}: ${error.message}`);}
-        const {error:resellerDeleteError}=await client.from("reseller_accounts").delete().eq("id",id).eq("business_id",bid);
-        if(resellerDeleteError)throw resellerDeleteError;
       }else if(action==="add-distribution"){
         openDistributionModal();
         return;
