@@ -361,7 +361,7 @@
       </div>
     </aside>
     <main class="main">
-      <header class="topbar"><div class="top-title" id="businessTitle">NOON DISTRIBUTION</div><div class="top-right"><span class="pill" id="rolePill">OWNER / ADMIN</span><span class="badge">SAR · Saudi Riyal</span><button class="top-logout" id="topLogoutBtn" type="button">Sign out</button></div></header>
+      <header class="topbar"><div class="top-title" id="businessTitle">NOON DISTRIBUTION</div><div class="top-right"><select id="languageSelect" aria-label="Language" style="border:1px solid var(--line);border-radius:9px;padding:7px;background:white;color:var(--ink);font-weight:700"><option value="en">English</option><option value="ar">العربية</option></select><span class="pill" id="rolePill">OWNER / ADMIN</span><span class="badge">SAR · Saudi Riyal</span><button class="top-logout" id="topLogoutBtn" type="button">Sign out</button></div></header>
       <div class="content">
         <div class="welcome"><div><h1 id="welcomeTitle">Dashboard</h1><p id="welcomeSub">Here is your business overview.</p></div></div>
         <div class="date-toolbar" id="dateToolbar" aria-label="History date filter">
@@ -457,6 +457,76 @@
   const SUPABASE_URL = "https://uqpfihwmitmjntegemrd.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yTOsahW0g8F5EGg6C_yLAQ_1WjHFgAp";
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  // English/Arabic UI language support. Does not change database or business logic.
+  const UI_TRANSLATIONS = {
+    "WORKSPACE":"مساحة العمل", "Dashboard":"لوحة التحكم", "Products":"المنتجات", "Resellers":"الموزعون",
+    "Distributions":"التوزيعات", "Sales":"المبيعات", "Deposits & Balance":"الإيداعات والرصيد", "Reports":"التقارير",
+    "Notifications":"الإشعارات", "Settings":"الإعدادات", "Sign out":"تسجيل الخروج", "Here is your business overview.":"إليك نظرة عامة على نشاطك التجاري.",
+    "History date:":"تاريخ السجل:", "All time":"كل الفترة", "Showing today's records":"عرض سجلات اليوم", "Products":"المنتجات",
+    "Active products":"المنتجات النشطة", "Resellers":"الموزعون", "Registered accounts":"الحسابات المسجلة", "Sales":"المبيعات",
+    "Recorded sales total":"إجمالي المبيعات المسجلة", "Owner Purchased":"مشتريات المالك", "Total cost of products originally purchased":"التكلفة الإجمالية للمنتجات المشتراة",
+    "Wallet balance":"رصيد المحفظة", "Available reseller balance":"رصيد الموزع المتاح", "Recent sales":"أحدث المبيعات", "Latest records":"أحدث السجلات",
+    "Workspace status":"حالة مساحة العمل", "Connected":"متصل", "Loading sales…":"جارٍ تحميل المبيعات…", "Use the menu to view your products, resellers, distributions and payment records.":"استخدم القائمة لعرض المنتجات والموزعين والتوزيعات وسجلات الدفع.",
+    "Add Product":"إضافة منتج", "Products and owner-controlled reseller prices.":"المنتجات وأسعار الموزعين التي يتحكم بها المالك.", "Add Reseller (Invitation)":"إضافة موزع (دعوة)",
+    "Reseller accounts linked to this business.":"حسابات الموزعين المرتبطة بهذا النشاط.", "Copy Public Registration Link":"نسخ رابط التسجيل العام", "Share the public link with anyone. New registrations are linked to this business and start Active.":"شارك الرابط العام مع أي شخص. ترتبط التسجيلات الجديدة بهذا النشاط وتبدأ بحالة نشطة.",
+    "Record Distribution":"تسجيل توزيع", "Stock issued to resellers. Database currently stores total amount only.":"المخزون الموزع على الموزعين. تحفظ قاعدة البيانات المبلغ الإجمالي فقط.",
+    "Record Sale":"تسجيل بيع", "Sales recorded by your account. Database currently stores total amount only.":"المبيعات المسجلة بواسطة حسابك. تحفظ قاعدة البيانات المبلغ الإجمالي فقط.",
+    "Record Deposit":"تسجيل إيداع", "Deposit and wallet transaction history for the selected date.":"سجل الإيداعات ومعاملات المحفظة للتاريخ المحدد.",
+    "Total Sales":"إجمالي المبيعات", "Owner Gross Profit":"إجمالي ربح المالك", "Reseller Profit Remaining":"ربح الموزع المتبقي", "Total Deposits":"إجمالي الإيداعات", "Outstanding Balance":"الرصيد المستحق",
+    "Wallet transactions":"معاملات المحفظة", "Reseller Statement":"كشف حساب الموزع", "Sales, deposits, outstanding balance and profit for each reseller.":"المبيعات والإيداعات والرصيد المستحق والربح لكل موزع.",
+    "Select reseller":"اختر موزعًا", "Print Statement":"طباعة كشف الحساب", "Pay Reseller Profit":"دفع ربح الموزع", "Reseller Sales":"مبيعات الموزع", "Deposits Received":"الإيداعات المستلمة", "Reseller Profit":"ربح الموزع", "Reseller transactions":"معاملات الموزع", "Select a reseller to view the statement.":"اختر موزعًا لعرض كشف الحساب.",
+    "Owner-only business activity and low-stock alerts.":"تنبيهات نشاط النشاط التجاري وانخفاض المخزون للمالك فقط.", "Account Settings":"إعدادات الحساب", "Manage your name, phone number and email address.":"إدارة الاسم ورقم الهاتف والبريد الإلكتروني.",
+    "Full name":"الاسم الكامل", "Phone number":"رقم الهاتف", "Email address":"البريد الإلكتروني", "Save Changes":"حفظ التغييرات", "Business Currency":"عملة النشاط التجاري", "Currency":"العملة",
+    "Bank Payment Details":"تفاصيل الحساب البنكي للدفع", "Enter the bank account where payments should be sent.":"أدخل الحساب البنكي الذي يجب إرسال المدفوعات إليه.", "Bank name":"اسم البنك", "IBAN / Account number":"رقم الآيبان / الحساب", "Account holder name":"اسم صاحب الحساب", "Owner Payment Account":"حساب دفع المالك", "Use these details to transfer payments to the business owner.":"استخدم هذه التفاصيل لتحويل المدفوعات إلى مالك النشاط.",
+    "Business Data Management":"إدارة بيانات النشاط التجاري", "Back up or download your business records. Delete All Data removes business records only; Owner and Reseller login accounts remain active.":"انسخ احتياطيًا أو نزّل سجلات النشاط. حذف جميع البيانات يزيل سجلات النشاط فقط؛ وتظل حسابات المالك والموزعين فعالة.",
+    "Backup All Data (JSON)":"نسخ احتياطي لجميع البيانات (JSON)", "Download Sheets (CSV)":"تنزيل الجداول (CSV)", "Delete All Business Data":"حذف جميع بيانات النشاط التجاري", "Type DELETE to confirm":"اكتب DELETE للتأكيد", "Type DELETE":"اكتب DELETE",
+    "Welcome back":"مرحبًا بعودتك", "Sign in to your distribution workspace.":"سجّل الدخول إلى مساحة التوزيع الخاصة بك.", "Password":"كلمة المرور", "Sign in":"تسجيل الدخول", "Forgot password?":"هل نسيت كلمة المرور؟", "Resend confirmation email":"إعادة إرسال رسالة التأكيد", "Reset your password":"إعادة تعيين كلمة المرور", "Send reset link":"إرسال رابط إعادة التعيين", "Back to sign in":"العودة لتسجيل الدخول", "Create a new password":"إنشاء كلمة مرور جديدة", "Save new password":"حفظ كلمة المرور الجديدة", "Join as a reseller":"انضم كموزع", "Create reseller account":"إنشاء حساب موزع", "Create account":"إنشاء حساب", "New password":"كلمة المرور الجديدة", "Confirm new password":"تأكيد كلمة المرور الجديدة"
+  };
+  const uiLang = localStorage.getItem('noon_ui_language') || 'en';
+  function applyUiLanguage(lang) {
+    if (typeof uiLanguageObserver !== 'undefined') uiLanguageObserver.disconnect();
+    const arabic = lang === 'ar';
+    document.documentElement.lang = arabic ? 'ar' : 'en';
+    document.documentElement.dir = arabic ? 'rtl' : 'ltr';
+    document.body.dir = arabic ? 'rtl' : 'ltr';
+    document.body.style.fontFamily = arabic ? 'Tahoma, Arial, sans-serif' : '';
+    document.querySelectorAll('#languageSelect').forEach(el => el.value = lang);
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (!node.parentElement || node.parentElement.closest('script,style,textarea,input,select,option')) continue;
+      if (!node.__noonEnglish) node.__noonEnglish = node.nodeValue;
+      const original = node.__noonEnglish.trim();
+      if (!original) continue;
+      const translated = arabic ? UI_TRANSLATIONS[original] : original;
+      if (translated) node.nodeValue = node.__noonEnglish.replace(original, translated);
+    }
+    document.querySelectorAll('input[placeholder],button[aria-label],input[aria-label]').forEach(el => {
+      if (!el.dataset.noonEnglishAttr) el.dataset.noonEnglishAttr = el.getAttribute('placeholder') || el.getAttribute('aria-label') || '';
+      const key = el.dataset.noonEnglishAttr;
+      if (arabic && UI_TRANSLATIONS[key]) {
+        if (el.hasAttribute('placeholder')) el.setAttribute('placeholder', UI_TRANSLATIONS[key]);
+        if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', UI_TRANSLATIONS[key]);
+      } else if (!arabic) {
+        if (el.hasAttribute('placeholder')) el.setAttribute('placeholder', key);
+        if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', key);
+      }
+    });
+    if (typeof uiLanguageObserver !== 'undefined') uiLanguageObserver.observe(document.body, {childList:true,subtree:true});
+  }
+  document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'languageSelect') {
+      localStorage.setItem('noon_ui_language', e.target.value);
+      applyUiLanguage(e.target.value);
+    }
+  });
+  const uiLanguageObserver = new MutationObserver(() => {
+    applyUiLanguage(localStorage.getItem('noon_ui_language') || 'en');
+  });
+  uiLanguageObserver.observe(document.body, {childList:true,subtree:true});
+  window.addEventListener('DOMContentLoaded', () => applyUiLanguage(localStorage.getItem('noon_ui_language') || 'en'));
+  applyUiLanguage(uiLang);
+
   let currentUser = null, profile = null, business = null, resellerAccount = null;
   let cache = {products:[],resellers:[],sales:[],wallet:[],distributions:[],saleItems:[],profitWithdrawals:[]};
   // Define the DOM helper before the date-history controls use it.
