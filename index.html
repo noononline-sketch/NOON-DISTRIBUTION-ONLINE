@@ -39,6 +39,68 @@
     .primary:disabled,.secondary-btn:disabled{opacity:.6;cursor:wait}
     @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app{grid-template-columns:210px 1fr}.two{grid-template-columns:1fr}}
     @media(max-width:680px){.date-toolbar{gap:7px}.date-toolbar .date-caption{width:100%;margin-left:0}.auth-wrap{grid-template-columns:1fr}.brand-panel{min-height:auto;padding:25px}.brand-panel h1{font-size:34px;margin:28px 0 10px}.brand-panel p{font-size:14px}.brand-foot{margin-top:25px}.auth-side{padding:35px 22px}.app{display:block}.sidebar{position:sticky;top:0;z-index:5;border-right:0;border-bottom:1px solid var(--line);padding:10px;gap:8px}.sidebar .brand{display:none}.nav-label,.sidebar-bottom{display:none}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;padding:9px 12px;font-size:12px}.topbar{height:60px;padding:0 16px}.content{padding:20px 14px}.welcome h1{font-size:22px}.grid{gap:10px}.stat{padding:14px}.stat .v{font-size:22px}.top-right .pill{display:none}}
+
+    /* Mobile-first refinements: preserve desktop layout and fit reseller workflows on phones */
+    @media (max-width: 680px) {
+      html, body { width:100%; min-width:0; overflow-x:hidden; }
+      body { font-size:14px; }
+      .auth-wrap { min-height:100dvh; }
+      .brand-panel { min-height:auto; padding:22px 20px; }
+      .brand-panel h1 { font-size:clamp(27px,8vw,36px); }
+      .auth-side { padding:24px 16px; }
+      .auth-card h2 { font-size:24px; }
+      .field { min-height:44px; font-size:16px; } /* avoids iOS input zoom */
+      .app { width:100%; min-width:0; }
+      .sidebar { position:sticky; top:0; padding:8px 7px; overflow:hidden; }
+      .nav { display:flex; gap:5px; overflow-x:auto; overflow-y:hidden; max-width:100%; padding-bottom:2px; scrollbar-width:thin; }
+      .nav button { flex:0 0 auto; min-height:40px; white-space:nowrap; padding:9px 11px; }
+      .main, .content, .section, .panel { min-width:0; max-width:100%; }
+      .topbar { padding:0 12px; gap:8px; }
+      .top-title { font-size:15px; }
+      .top-right { gap:6px; }
+      .top-logout { padding:8px 10px; font-size:12px; }
+      .content { padding:16px 10px; }
+      .welcome { align-items:flex-start; flex-direction:column; gap:8px; }
+      .welcome h1, .section-title h1 { font-size:21px; overflow-wrap:anywhere; }
+      .section-title p { overflow-wrap:anywhere; }
+      .date-toolbar { padding:10px; margin:0 0 16px; }
+      .date-toolbar input { min-width:0; max-width:100%; }
+      .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+      .stat { padding:12px 10px; border-radius:12px; }
+      .stat .v { font-size:clamp(16px,4.8vw,22px); overflow-wrap:anywhere; letter-spacing:-.2px; }
+      .stat .k, .stat .hint { overflow-wrap:anywhere; }
+      .two { grid-template-columns:minmax(0,1fr); gap:10px; }
+      .panel { padding:12px; border-radius:12px; }
+      .panel-head { gap:8px; flex-wrap:wrap; }
+      .section-actions { gap:7px; }
+      .section-actions button, .action-btn, .secondary-btn { min-height:40px; max-width:100%; font-size:12px; padding:9px 11px; }
+      .table-wrap { width:100%; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      table { min-width:620px; }
+      th, td { padding:10px 8px; font-size:12px; }
+      .modal-backdrop { padding:10px; align-items:center; }
+      .modal-card { width:100%; max-width:480px; max-height:calc(100dvh - 20px); padding:17px 14px; border-radius:14px; }
+      .modal-card h2 { font-size:20px; }
+      .modal-actions { flex-wrap:wrap; }
+      .modal-actions button { flex:1 1 120px; min-height:42px; }
+      .sale-products { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .cart-line { flex-wrap:wrap; }
+    }
+    @media (max-width:380px) {
+      .content { padding:13px 8px; }
+      .grid { grid-template-columns:minmax(0,1fr); }
+      .nav button { font-size:11px; padding:8px 9px; }
+      .topbar { padding:0 8px; }
+      .top-title { font-size:13px; }
+      .top-logout { padding:7px 8px; }
+      .auth-side { padding:20px 12px; }
+    }
+    @media (min-width:681px) and (max-width:950px) {
+      .content { padding:22px 18px; }
+      .table-wrap { overflow-x:auto; }
+      table { min-width:620px; }
+      .modal-card { max-width:min(480px,calc(100vw - 30px)); }
+    }
+
   </style>
 </head>
 <body>
