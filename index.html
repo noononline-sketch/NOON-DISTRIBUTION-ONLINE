@@ -400,6 +400,16 @@
               <label for="settingsEmail">Email address</label>
               <input class="field" id="settingsEmail" type="email" autocomplete="email" required>
               <p class="muted" style="margin-top:8px">Changing your email may require confirmation from your new email address.</p>
+              <div id="ownerCurrencyPanel" class="panel hidden" style="margin-top:16px;padding:15px;background:#f5f8fd;box-shadow:none">
+                <h3>Business Currency</h3>
+                <p class="muted">Only the Owner/Admin can choose the currency. Reseller accounts use the business currency and cannot change it.</p>
+                <label for="settingsCurrency">Currency</label>
+                <select class="field" id="settingsCurrency">
+                  <option value="SAR">SAR — Saudi Riyal</option>
+                  <option value="USD">USD — US Dollar</option>
+                  <option value="ETB">ETB — Ethiopian Birr</option>
+                </select>
+              </div>
               <div class="panel" style="margin-top:16px;padding:15px;background:#f5f8fd;box-shadow:none">
                 <h3 id="paymentDetailsHeading">Bank Payment Details</h3>
                 <p class="muted" id="paymentDetailsHelp">Enter the bank account where payments should be sent.</p>
@@ -506,7 +516,11 @@
     updateDateCaption();render();
   });
   updateDateCaption();
-  const money = n => new Intl.NumberFormat("en-SA",{style:"currency",currency:"SAR"}).format(Number(n||0));
+  const money = n => {
+    const currency=(["SAR","USD","ETB"].includes(business?.currency)?business.currency:"SAR");
+    const locale=currency==="ETB"?"en-ET":currency==="USD"?"en-US":"en-SA";
+    return new Intl.NumberFormat(locale,{style:"currency",currency, currencyDisplay:"code"}).format(Number(n||0));
+  };
   const safe = v => String(v ?? "");
   function cell(v){return `<td>${safe(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</td>`}
   function table(headers, rows, empty){ if(!rows.length)return `<div class="empty">${empty}</div>`; return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`; }
@@ -562,6 +576,12 @@
     if(!business)throw new Error("No business is linked to this account yet.");
     $("businessTitle").textContent=business.business_name;
     $("rolePill").textContent=owner?"OWNER / ADMIN":"RESELLER";
+    if($("ownerCurrencyPanel"))$("ownerCurrencyPanel").classList.toggle("hidden",!owner);
+    if($("settingsCurrency"))$("settingsCurrency").value=["SAR","USD","ETB"].includes(business.currency)?business.currency:"SAR";
+    const currency=(["SAR","USD","ETB"].includes(business.currency)?business.currency:"SAR");
+    const currencyNames={SAR:"SAR · Saudi Riyal",USD:"USD · US Dollar",ETB:"ETB · Ethiopian Birr"};
+    const currencyBadge=document.querySelector(".topbar .badge");if(currencyBadge)currencyBadge.textContent=currencyNames[currency];
+    document.querySelectorAll("#settingsCurrency option").forEach(option=>{});
     if($("openProfitWithdrawalBtn"))$("openProfitWithdrawalBtn").classList.toggle("hidden",!owner);
     $("settingsFullName").value=profile.full_name||resellerAccount?.reseller_name||"";
     $("settingsPhone").value=profile.phone||resellerAccount?.phone||"";
@@ -1580,8 +1600,10 @@
           .eq("id",resellerAccount.id).eq("user_id",currentUser.id);
         if(resellerError)throw resellerError;
       }else if(profile.role==="owner"&&business){
+        const selectedCurrency=$("settingsCurrency").value;
+        if(!["SAR","USD","ETB"].includes(selectedCurrency))throw new Error("Please select a supported business currency.");
         const {error:businessError}=await client.from("businesses")
-          .update({bank_name:bankName||null,bank_account_number:bankAccount||null,account_holder_name:accountHolder||null})
+          .update({bank_name:bankName||null,bank_account_number:bankAccount||null,account_holder_name:accountHolder||null,currency:selectedCurrency})
           .eq("id",business.id).eq("owner_id",currentUser.id);
         if(businessError)throw businessError;
       }
