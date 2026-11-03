@@ -849,7 +849,7 @@
     document.querySelectorAll('[data-action="add-deposit"]').forEach(button=>button.classList.toggle("hidden",profile.role!=="owner"));
     const productRows=cache.products.filter(x=>profile.role==="owner"||(Number(x.stock_quantity||0)>0&&x.active!==false)).map(x=>`<tr><td>${x.image_url?`<img class="product-image" src="${safe(x.image_url)}" alt="">`:""}${safe(x.product_name)}</td>${cell(x.sku||"—")}${cell(money(x.reseller_price))}${cell(money(x.retail_price))}${cell(x.stock_quantity)}<td>${profile.role==="owner"?`<button class="row-action" data-action="edit-product" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="delete-product" data-id="${x.id}">Delete</button>`:"—"}</td></tr>`);
     $("productsTable").innerHTML=table(["Product","SKU","Reseller price","Retail price","Stock","Actions"],productRows,profile.role==="reseller"?"No products distributed to you yet.":"No products added yet.");
-    $("resellersTable").innerHTML=table(["Reseller","Email","Phone","Bank","IBAN / Account No.","Account Holder","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.email||"—")}${cell(x.phone||"—")}${cell(x.bank_name||"—")}${cell(x.bank_account_number||"—")}${cell(x.account_holder_name||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button></td></tr>`),"No reseller accounts added yet.");
+    $("resellersTable").innerHTML=table(["Reseller","Email","Phone","Bank","IBAN / Account No.","Account Holder","Status","Actions"],cache.resellers.map(x=>`<tr>${cell(x.reseller_name)}${cell(x.email||"—")}${cell(x.phone||"—")}${cell(x.bank_name||"—")}${cell(x.bank_account_number||"—")}${cell(x.account_holder_name||"—")}${cell(x.active?"Active":"Inactive")}<td><button class="row-action" data-action="edit-reseller" data-id="${x.id}">Edit</button><button class="row-action danger" data-action="toggle-reseller" data-id="${x.id}">${x.active?"Deactivate":"Activate"}</button><button class="row-action danger" data-action="delete-reseller" data-id="${x.id}">Delete</button></td></tr>`),"No reseller accounts added yet.");
     $("distributionsTable").innerHTML=table(["Date","Reseller","Product","Quantity","Total","Status"],view.distributions.map(x=>{const r=cache.resellers.find(v=>v.id===x.reseller_id);const p=cache.products.find(v=>v.id===x.product_id);return `<tr>${cell(x.distribution_date)}${cell(r?.reseller_name||"Your account")}${cell(p?.product_name||"—")}${cell(x.quantity??"—")}${cell(money(x.total_amount))}${cell(x.status)}</tr>`}),"No distributions recorded yet.");
     $("salesTable").innerHTML=table(["Date","Payment","Total","Receipt"],view.sales.map(x=>`<tr>${cell(new Date(x.sale_date).toLocaleString())}${cell(x.payment_method||"—")}${cell(money(x.total_amount))}<td><button class="row-action" data-action="print-receipt" data-id="${x.id}">Print / Receipt</button></td></tr>`),"No sales recorded for this date.");renderNotifications(view);
     $("walletTable").innerHTML=table(["Date","Type","Direction","Amount","Description"],view.wallet.map(x=>`<tr>${cell(new Date(x.created_at).toLocaleString())}${cell(x.transaction_type)}${cell(x.direction)}${cell(money(x.amount))}${cell(x.description||"—")}</tr>`),"No wallet transactions recorded yet.");
@@ -880,6 +880,30 @@
       }else if(action==="toggle-reseller"){
         const old=cache.resellers.find(x=>x.id===id);if(!old)return;
         const {error}=await client.from("reseller_accounts").update({active:!old.active}).eq("id",id).eq("business_id",bid);if(error)throw error;
+      }else if(action==="delete-reseller"){
+        const target=cache.resellers.find(x=>x.id===id);if(!target)return;
+        const confirmation=`PERMANENTLY DELETE RESELLER\n\n${target.reseller_name||"This reseller"} and ALL their related data?\n\nThis includes reseller inventory, distributions, sales, sale items, wallet/deposit transactions, and reseller profit withdrawals. This cannot be undone.`;
+        if(!confirm(confirmation))return;
+        if(ask(`To confirm, type DELETE for ${target.reseller_name||"this reseller"}:`)!=="DELETE"){
+          alert("Deletion cancelled. The confirmation text did not match.");return;
+        }
+        // Delete dependent records first so foreign-key references do not block the operation.
+        const {data:sales,error:salesFetchError}=await client.from("sales").select("id").eq("business_id",bid).eq("reseller_id",id);
+        if(salesFetchError)throw salesFetchError;
+        const saleIds=(sales||[]).map(row=>row.id).filter(Boolean);
+        if(saleIds.length){
+          const {error}=await client.from("sale_items").delete().in("sale_id",saleIds);if(error)throw error;
+          const {error:saleDeleteError}=await client.from("sales").delete().eq("business_id",bid).eq("reseller_id",id);if(saleDeleteError)throw saleDeleteError;
+        }
+        const dependentDeletes=[
+          ["reseller_profit_withdrawals",()=>client.from("reseller_profit_withdrawals").delete().eq("business_id",bid).eq("reseller_id",id)],
+          ["wallet_transactions",()=>client.from("wallet_transactions").delete().eq("business_id",bid).eq("reseller_id",id)],
+          ["distributions",()=>client.from("distributions").delete().eq("business_id",bid).eq("reseller_id",id)],
+          ["reseller_inventory",()=>client.from("reseller_inventory").delete().eq("business_id",bid).eq("reseller_id",id)]
+        ];
+        for(const [tableName,runDelete] of dependentDeletes){const {error}=await runDelete();if(error)throw new Error(`${tableName}: ${error.message}`);}
+        const {error:resellerDeleteError}=await client.from("reseller_accounts").delete().eq("id",id).eq("business_id",bid);
+        if(resellerDeleteError)throw resellerDeleteError;
       }else if(action==="add-distribution"){
         openDistributionModal();
         return;
