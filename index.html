@@ -101,6 +101,109 @@
       .modal-card { max-width:min(480px,calc(100vw - 30px)); }
     }
 
+  
+    /* NOON scroll layout: keep the app shell in the viewport and scroll page content independently. */
+    html, body { height:100%; }
+    .app {
+      height:100dvh;
+      min-height:0;
+      overflow:hidden;
+    }
+    .sidebar {
+      height:100dvh;
+      min-height:0;
+      overflow-y:auto;
+      overflow-x:hidden;
+      overscroll-behavior:contain;
+      scrollbar-width:thin;
+    }
+    .sidebar > :nth-child(2) { min-height:0; }
+    .nav { min-height:0; }
+    .main {
+      height:100dvh;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .topbar { flex:0 0 auto; }
+    .content {
+      flex:1 1 auto;
+      min-height:0;
+      width:100%;
+      overflow-y:auto;
+      overflow-x:hidden;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+      margin:0;
+    }
+    .section, .section.active { min-width:0; }
+    .section.active { overflow:visible; }
+    .table-wrap {
+      max-width:100%;
+      overflow-x:auto;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior:contain;
+    }
+    .table-wrap table { min-width:max-content; }
+    .modal-backdrop {
+      overflow-y:auto;
+      overflow-x:hidden;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+      align-items:center;
+    }
+    .modal-card {
+      max-height:calc(100dvh - 36px);
+      overflow-y:auto;
+      overflow-x:hidden;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+      flex:0 0 auto;
+    }
+    @media (max-width:680px) {
+      .app {
+        display:flex;
+        flex-direction:column;
+        height:100dvh;
+        min-height:0;
+      }
+      .sidebar {
+        height:auto;
+        max-height:none;
+        min-height:0;
+        flex:0 0 auto;
+        overflow:hidden;
+      }
+      .sidebar > :nth-child(2) { min-height:0; }
+      .nav { overflow-x:auto; overflow-y:hidden; }
+      .main {
+        flex:1 1 auto;
+        height:auto;
+        min-height:0;
+        overflow:hidden;
+      }
+      .content {
+        flex:1 1 auto;
+        min-height:0;
+        overflow-y:auto;
+        overflow-x:hidden;
+        padding-bottom:calc(16px + env(safe-area-inset-bottom));
+      }
+      .modal-backdrop {
+        align-items:flex-start;
+        padding:10px;
+      }
+      .modal-card {
+        max-height:calc(100dvh - 20px);
+        margin:auto 0;
+      }
+    }
+    @media (min-width:681px) {
+      .sidebar { position:relative; }
+    }
+
   </style>
 </head>
 <body>
