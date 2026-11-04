@@ -101,6 +101,73 @@
       .modal-card { max-width:min(480px,calc(100vw - 30px)); }
     }
 
+  
+    /* Revised scroll behavior: explicit scroll containers for app, tables and dialogs. */
+    html, body { height:100%; min-height:0; }
+    body { overflow:hidden; }
+    .app {
+      height:100dvh; min-height:0; width:100%;
+      display:grid; grid-template-columns:255px minmax(0,1fr);
+      overflow:hidden;
+    }
+    .sidebar {
+      height:100dvh; min-height:0; overflow-y:auto; overflow-x:hidden;
+      overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch;
+    }
+    .main {
+      height:100dvh; min-height:0; min-width:0;
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    .topbar { flex:0 0 76px; min-width:0; }
+    .content {
+      flex:1 1 0; min-height:0; min-width:0; width:100%; max-width:none;
+      margin:0; overflow-y:auto; overflow-x:hidden;
+      overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch;
+    }
+    .section, .section.active { min-width:0; max-width:100%; }
+    .section.active { overflow:visible; }
+    .table-wrap {
+      display:block; width:100%; max-width:100%; min-width:0;
+      overflow-x:auto; overflow-y:hidden; touch-action:pan-x;
+      -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
+    }
+    .table-wrap table { width:max-content; min-width:100%; }
+    .modal-backdrop {
+      position:fixed; inset:0; display:grid; place-items:center;
+      overflow-y:auto; overflow-x:hidden; padding:18px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .modal-card {
+      width:min(480px,100%); max-height:calc(100dvh - 36px);
+      min-height:0; overflow-y:auto; overflow-x:hidden;
+      overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch;
+    }
+    @media (max-width:950px) and (min-width:681px) {
+      .app { grid-template-columns:210px minmax(0,1fr); }
+      .topbar { flex-basis:76px; }
+    }
+    @media (max-width:680px) {
+      html, body { width:100%; min-width:0; height:100%; overflow:hidden; }
+      .app { display:flex; flex-direction:column; height:100dvh; min-height:0; }
+      .sidebar {
+        position:relative; top:auto; height:auto; max-height:none; min-height:0;
+        flex:0 0 auto; overflow:hidden; padding:8px 7px;
+      }
+      .sidebar .brand, .nav-label, .sidebar-bottom { display:none; }
+      .nav { display:flex; flex:0 0 auto; max-width:100%; overflow-x:auto; overflow-y:hidden; }
+      .nav button { flex:0 0 auto; white-space:nowrap; }
+      .main { flex:1 1 0; height:auto; min-height:0; overflow:hidden; }
+      .topbar { height:60px; flex:0 0 60px; }
+      .content {
+        flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden;
+        padding:16px 10px calc(16px + env(safe-area-inset-bottom));
+      }
+      .table-wrap { overflow-x:auto; overflow-y:hidden; touch-action:pan-x; }
+      .table-wrap table { min-width:620px; }
+      .modal-backdrop { place-items:start center; padding:10px; }
+      .modal-card { max-height:calc(100dvh - 20px); margin:0; }
+    }
+
   </style>
 </head>
 <body>
