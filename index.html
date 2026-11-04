@@ -168,53 +168,7 @@
       .modal-card { max-height:calc(100dvh - 20px); margin:0; }
     }
 
-  
-    /* FIX: Each data list gets its own vertical and horizontal scroll area.
-       Sticky table headers remain visible while the rows move. */
-    .section.active .panel > .table-wrap,
-    .section.active .table-wrap {
-      width:100%;
-      max-width:100%;
-      min-width:0;
-      max-height:calc(100dvh - 300px);
-      overflow-x:auto;
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-      overscroll-behavior:contain;
-      touch-action:pan-x pan-y;
-      scrollbar-gutter:stable;
-    }
-    .section.active .table-wrap table {
-      width:max-content;
-      min-width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-    }
-    .section.active .table-wrap thead th {
-      position:sticky;
-      top:0;
-      z-index:2;
-      background:#fff;
-    }
-    .section.active .table-wrap td,
-    .section.active .table-wrap th {
-      background-clip:padding-box;
-    }
-    .section.active .table-wrap::-webkit-scrollbar {
-      width:10px;
-      height:10px;
-    }
-    .section.active .table-wrap::-webkit-scrollbar-thumb {
-      background:#b9c6d8;
-      border-radius:10px;
-      border:2px solid #fff;
-    }
-    @media(max-width:680px) {
-      .section.active .table-wrap {
-        max-height:calc(100dvh - 270px);
-      }
-    }
-</style>
+  </style>
 </head>
 <body>
   <section id="authView" class="auth-wrap">
