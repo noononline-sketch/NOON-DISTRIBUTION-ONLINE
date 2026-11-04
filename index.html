@@ -384,7 +384,7 @@
           </div>
         </section>
         <section id="products" class="section"><div class="section-title"><h1>Products</h1><p>Products and owner-controlled reseller prices.</p></div><div class="section-actions"><button class="action-btn" data-action="add-product">+ Add Product</button></div><div class="panel"><div class="table-wrap" id="productsTable"><div class="empty">Loading products…</div></div></div></section>
-        <section id="resellers" class="section"><div class="section-title"><h1>Resellers</h1><p>Reseller accounts linked to this business.</p></div><div class="section-actions"><button class="action-btn" data-action="add-reseller">+ Add Reseller (Invitation)</button><button class="secondary-btn" id="copyPublicResellerLinkBtn" type="button">Copy Public Registration Link</button></div><p class="muted">Share the public link with anyone. New registrations are linked to this business and start Active.</p><div class="panel"><div class="table-wrap" id="resellersTable"><div class="empty">Loading resellers…</div></div></div></section>
+        <section id="resellers" class="section"><div class="section-title"><h1>Resellers</h1><p>Reseller accounts linked to this business.</p></div><div class="section-actions"><button class="action-btn" data-action="add-reseller">+ Add Reseller (Invitation)</button><button class="secondary-btn" id="copyPublicResellerLinkBtn" type="button">Copy Public Registration Link</button><button class="action-btn" id="resetAllResellerDataBtn" type="button" style="background:#b42332">Reset All Reseller Data</button></div><p class="muted">Share the public link with anyone. New registrations are linked to this business and start Active. Reset clears reseller operational records but keeps reseller login accounts.</p><div id="resetAllResellerDataMessage" class="modal-message" aria-live="polite"></div><div class="panel"><div class="table-wrap" id="resellersTable"><div class="empty">Loading resellers…</div></div></div></section>
         <section id="distributions" class="section"><div class="section-title"><h1>Distributions</h1><p>Stock issued to resellers. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-distribution">+ Record Distribution</button></div><div class="panel"><div class="table-wrap" id="distributionsTable"><div class="empty">Loading distributions…</div></div></div></section>
         <section id="sales" class="section"><div class="section-title"><h1>Sales</h1><p>Sales recorded by your account. Database currently stores total amount only.</p></div><div class="section-actions"><button class="action-btn" data-action="add-sale" id="recordSaleButton">+ Record Sale</button></div><div class="panel"><div class="table-wrap" id="salesTable"><div class="empty">Loading sales…</div></div></div></section>
         <section id="wallet" class="section"><div class="section-title"><h1>Deposits & Balance</h1><p>Deposit and wallet transaction history for the selected date.</p></div><div class="section-actions"><button class="action-btn" data-action="add-deposit">+ Record Deposit</button></div><div class="panel"><div class="table-wrap" id="walletTable"><div class="empty">Loading wallet…</div></div></div></section>
@@ -1631,6 +1631,45 @@
       alert("CSV sheets downloaded. You can open them in Excel or import them into Google Sheets.");
     }catch(err){alert("Download failed: "+(err.message||String(err)));}
     finally{btn.disabled=false;btn.textContent="▤ Download Sheets (CSV)";}
+  });
+  $("resetAllResellerDataBtn")?.addEventListener("click",async()=>{
+    const btn=$("resetAllResellerDataBtn"),message=$("resetAllResellerDataMessage");
+    if(profile?.role!=="owner"||!business?.id){
+      message.className="modal-message error";
+      message.textContent="Only the Owner/Admin can reset reseller data.";
+      return;
+    }
+    if(!cache.resellers.length){
+      message.className="modal-message";
+      message.textContent="There are no reseller accounts to reset.";
+      return;
+    }
+    const warning=`RESET ALL RESELLER OPERATIONAL DATA?\\n\\nThis will clear all reseller distributions, sales, sale items, reseller inventory, wallet/deposit transactions and profit payout records for this business.\\n\\nReseller login accounts and profiles will remain. This action cannot be undone.`;
+    if(!confirm(warning))return;
+    if(prompt("Type RESET ALL to confirm:")!=="RESET ALL"){
+      alert("Reset cancelled. Confirmation text did not match.");
+      return;
+    }
+    btn.disabled=true;btn.textContent="Resetting…";
+    message.className="modal-message";message.textContent="";
+    try{
+      // Requires the secure owner-validated Supabase Edge Function to be deployed.
+      const {data,error}=await client.functions.invoke("owner-reset-all-reseller-data",{
+        body:{p_business_id:business.id}
+      });
+      if(error)throw new Error(error.message||"Reset request failed.");
+      if(data?.error)throw new Error(data.error);
+      if(data?.success!==true)throw new Error("The server did not confirm the reset.");
+      await loadWorkspace();
+      message.className="modal-message success";
+      message.textContent="All reseller operational data has been reset. Reseller login accounts remain active.";
+      alert("All reseller operational data has been reset. Reseller accounts remain.");
+    }catch(err){
+      message.className="modal-message error";
+      message.textContent="Reset failed: "+(err.message||String(err))+". Ensure the owner-reset-all-reseller-data Edge Function is deployed.";
+    }finally{
+      btn.disabled=false;btn.textContent="Reset All Reseller Data";
+    }
   });
   $("deleteAllDataBtn")?.addEventListener("click",async()=>{
     const message=$("deleteDataMessage"),btn=$("deleteAllDataBtn");
